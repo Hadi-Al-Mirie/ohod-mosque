@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\Teachers\AttendanceController;
-use App\Http\Controllers\APi\Teachers\CircleController;
+use App\Http\Controllers\API\Teachers\CircleController;
 use App\Http\Controllers\API\Teachers\LoginController;
 use App\Http\Controllers\API\Teachers\LogoutController;
 use App\Http\Controllers\API\Teachers\StudentController;
