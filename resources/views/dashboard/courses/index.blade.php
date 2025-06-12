@@ -38,7 +38,7 @@
                             <tr>
                                 <th class="py-3">#</th>
                                 <th class="py-3">الاسم</th>
-                                <th class="py-3 text-center">التحكم</th>
+                                <th class="py-3 text-center">الخيارات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -47,7 +47,7 @@
                                     <td class="align-middle">{{ $course->id }}</td>
                                     <td class="align-middle">{{ $course->name }}</td>
                                     <td class="align-middle text-center">
-                                        <a href="{{ route('admin.courses.show', $course->id) }}"
+                                        <a href="{{ route('admin.oldcourse.show', $course->id) }}"
                                             class="btn btn-primary hover-scale">
                                             <i class="fas fa-eye me-1"></i> التفاصيل
                                         </a>

@@ -4,12 +4,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dashboard\CircleController;
 use App\Http\Controllers\Dashboard\CourseController;
 use App\Http\Controllers\Dashboard\NoteController;
+use App\Http\Controllers\Dashboard\HelperTeacherController;
 use App\Http\Controllers\Dashboard\SabrController;
+use App\Http\Controllers\Dashboard\SabrHistoryController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\StudentController;
 use App\Http\Controllers\Dashboard\TeacherController;
 use App\Http\Controllers\Dashboard\RecitationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Dashboard\RecitationHistoryController;
 use App\Http\Controllers\Dashboard\LoginController;
 use App\Http\Controllers\Dashboard\AttendanceController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -44,8 +47,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::middleware('courseExists')->group(function () {
         Route::resource('users', UserController::class);
         Route::resource('circles', CircleController::class);
+        Route::get('{student}/sabr-history', [SabrHistoryController::class, 'show'])
+            ->name('sabr.history');
+        Route::patch(
+            'recitations/{recitation}/toggle-final',
+            [RecitationController::class, 'toggleFinal']
+        )->name('recitations.toggleFinal');
+        Route::get('{student}/recitation-history', [RecitationHistoryController::class, 'show'])
+            ->name('recitation.history');
         Route::resource('students', StudentController::class);
         Route::resource('teachers', TeacherController::class);
+        Route::resource('helper-teachers', HelperTeacherController::class);
         Route::get('student/{student}/print', [StudentController::class, 'print'])
             ->name('students.print');
         Route::get(
@@ -66,6 +78,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::resource('attendances', AttendanceController::class);
         Route::resource('sabrs', SabrController::class);
         Route::resource('recitations', RecitationController::class);
+        Route::get('old-course/{course}/show', [CourseController::class, 'show'])->name('oldcourse.show');
         Route::resource('courses', CourseController::class);
         Route::get('notes/requests', [NoteController::class, 'requests'])->name('notes.requests');
         Route::patch('notes/{note}/approve', [NoteController::class, 'approve'])

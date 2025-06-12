@@ -57,7 +57,7 @@
                                     <div class="d-flex flex-column">
                                         <span class="fw-bold text-dark">{{ $row['circle'] }}</span>
                                         <div class="text-muted small mt-1">
-                                            النسبة المئوية لنتائج السبورة
+                                            النسبة المئوية لنتائج السبر
                                         </div>
                                     </div>
 

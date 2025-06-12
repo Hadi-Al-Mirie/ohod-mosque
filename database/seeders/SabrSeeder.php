@@ -49,10 +49,6 @@ class SabrSeeder extends Seeder
             $totalPenalty = 0;
             // For each mistake type, always create a SabrMistake record.
             foreach ($mistakes as $mistake) {
-                // Generate a random quantity between 0 and 3.
-                $quantity = rand(0, 3);
-                $totalPenalty += $mistake->value * $quantity;
-
             }
 
             // Calculate the final result assuming a perfect score of 100.

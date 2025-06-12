@@ -49,7 +49,7 @@
                     </div>
 
                     <!-- Page -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold text-success">
                                 <i class="fas fa-file-alt me-2"></i> الصفحة
@@ -61,13 +61,25 @@
                     </div>
 
                     <!-- Result -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold text-success">
                                 <i class="fas fa-star me-2"></i> النتيجة
                             </label>
                             <div class="bg-white p-3 rounded-3 shadow-sm">
                                 {{ $recitation->calculateResult() }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Level -->
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-success">
+                                <i class="fa-solid fa-turn-up"></i> مستوى التسميع
+                            </label>
+                            <div class="bg-white p-3 rounded-3 shadow-sm">
+                                {{ $recitation->level->name }}
                             </div>
                         </div>
                     </div>
@@ -86,44 +98,43 @@
                         <thead class="bg-success text-white">
                             <tr>
                                 <th class="py-3"><i class="fas fa-bug me-2"></i> الخطأ</th>
-                                <th class="py-3"><i class="fas fa-hashtag me-2"></i> القيمة</th>
-                                <th class="py-3"><i class="fas fa-calculator me-2"></i> الكمية</th>
-                                <th class="py-3 text-end"><i class="fas fa-coins me-2"></i> الإجمالي</th>
+                                <th class="py-3"><i class="fas fa-calculator me-2"></i> التفاصيل</th>
+                                <th class="py-3 text-end"><i class="fas fa-coins me-2"></i> القيمة</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($recitation->recitationMistakes as $m)
+                                @php
+                                    $penaltyVal = $m->mistake->levels->firstWhere('id', $lvlId)->pivot->value ?? 0;
+                                @endphp
                                 <tr>
                                     <td class="align-middle">{{ $m->mistake->name }}</td>
                                     <td class="align-middle">
-                                        {{ $m->mistake->levels->firstWhere('id', $lvlId)->pivot->value ?? 0 }}</td>
-                                    <td class="align-middle">{{ $m->quantity }}</td>
+                                        سطر: {{ $m->line_number }}<br>
+                                        كلمة: {{ $m->word_number }}
+                                    </td>
                                     <td class="align-middle text-end fw-bold text-success">
-                                        {{ number_format($m->mistake->levels->firstWhere('id', $lvlId)->pivot->value * $m->quantity) }}
+                                        {{ number_format($penaltyVal) }}
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr class="bg-warning-subtle">
-                                <td colspan="3" class="text-end fw-bold">المجموع:</td>
+                                <td colspan="2" class="text-end fw-bold">المجموع:</td>
                                 <td class="text-end fw-bold text-danger">
-                                    100 -
-                                    {{ number_format(
-                                        $recitation->recitationMistakes->sum(function ($item) use ($lvlId) {
-                                            return $item->mistake->levels->firstWhere('id', $lvlId)->pivot->value * $item->quantity;
-                                        }),
-                                    ) }}
-                                    =
-                                    {{ 100 -
-                                        number_format(
-                                            $recitation->recitationMistakes->sum(function ($item) use ($lvlId) {
-                                                return $item->mistake->levels->firstWhere('id', $lvlId)->pivot->value * $item->quantity;
-                                            }),
-                                        ) }}
+                                    @php
+                                        $totalPenalty = $recitation->recitationMistakes->sum(
+                                            fn($item) => $item->mistake->levels->firstWhere('id', $lvlId)->pivot
+                                                ->value ?? 0,
+                                        );
+                                        $rawScore = 100 - $totalPenalty;
+                                    @endphp
+                                    100 - {{ number_format($totalPenalty) }} = {{ $rawScore }}
                                 </td>
                             </tr>
                         </tfoot>
+
                     </table>
                 </div>
             </div>

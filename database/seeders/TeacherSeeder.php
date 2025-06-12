@@ -15,8 +15,8 @@ class TeacherSeeder extends Seeder
     public function run(): void
     {
         $user = User::create([
-            'name' => 'ا',
-            'password' => Hash::make('ا'),
+            'name' => 'استاذ',
+            'password' => Hash::make('password'),
             'role_id' => 2,
         ]);
         Teacher::create([

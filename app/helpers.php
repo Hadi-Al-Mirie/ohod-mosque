@@ -14,15 +14,15 @@ if (!function_exists('course_id')) {
 }
 if (!function_exists('assessmentResultName')) {
     /**
-     * Calculate the result *name* or throw if raw score out of range.
+     * Calculate the result *name* based on raw score clamped to 0–100.
      *
-     * @param  int         $baseScore
-     * @param  Collection  $records    Collection of objects with mistake_id & quantity
-     * @param  Collection  $values     map mistake_id → penalty value
+     * @param  int         $baseScore  Starting score (usually 100)
+     * @param  Collection  $records    Collection of mistake records (each one counts once)
+     * @param  Collection  $values     Map of mistake_id → penalty value
      * @param  string      $type       'recitation' or 'sabr'
-     * @return string                 one of your ResultSetting::name
+     * @return string                 One of your ResultSetting::name
      *
-     * @throws ValidationException    if raw score < 0 or > 100
+     * @throws ValidationException    if computed raw score ever falls outside 0–100
      */
     function assessmentResultName(
         int $baseScore,
@@ -30,44 +30,57 @@ if (!function_exists('assessmentResultName')) {
         Collection $values,
         string $type
     ): string {
-        $penalty = $records->sum(fn($r) => ($values->get($r->mistake_id, 0) * $r->quantity));
-        $raw = $baseScore - $penalty;
+        // Sum one penalty unit per record
+        $totalPenalty = $records->sum(fn($r) => $values->get($r->mistake_id, 0));
+
+        $raw = $baseScore - $totalPenalty;
+
         if ($raw < 0 || $raw > 100) {
             throw ValidationException::withMessages([
-                'mistakes' => ['نتيجة ' . ($type === 'recitation' ? 'التسميع' : 'السبر') . ' لا يمكن أن تكون خارج 0–100.']
+                'mistakes' => [
+                    'نتيجة ' . ($type === 'recitation' ? 'التسميع' : 'السبر') .
+                    ' لا يمكن أن تكون خارج 0–100.'
+                ]
             ]);
         }
+
         $setting = ResultSetting::where('type', $type)
             ->where('min_res', '<=', $raw)
             ->where('max_res', '>=', $raw)
             ->first();
-        return $setting
-            ? $setting->name
-            : 'error';
+
+        return $setting ? $setting->name : 'error';
     }
 }
+
 if (!function_exists('assessmentRawScore')) {
+    /**
+     * Compute raw score (0–100) based on one record = one penalty.
+     *
+     * @param  Model  $model  Recitation or Sabr model
+     * @return int
+     */
     function assessmentRawScore(Model $model): int
     {
-        // base score
         $base = 100;
 
-        // get penalty values for this model’s level & type
         $type = $model instanceof \App\Models\Recitation ? 'recitation' : 'sabr';
-        /** @var Collection<int,int> $penalties */
+
+        // penalty values per mistake ID for this level
         $penalties = $model
             ->level
             ->mistakes()
             ->where('mistakes.type', $type)
             ->pluck('level_mistakes.value', 'mistakes.id');
 
-        // sum up actual mistake records on this model
+        // each record counts as one occurrence
         $records = $model->mistakesRecords()->get();
-        $totalPenalty = $records->sum(fn($r) => ($penalties->get($r->mistake_id, 0) * $r->quantity));
+
+        $totalPenalty = $records->sum(fn($r) => $penalties->get($r->mistake_id, 0));
 
         $raw = $base - $totalPenalty;
-        // clamp just in case
-        return (int) max(0, min(100, $raw));
+
+        return (int) min(100, $raw);
     }
 }
 

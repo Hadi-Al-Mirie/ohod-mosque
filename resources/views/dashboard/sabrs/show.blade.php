@@ -49,7 +49,7 @@
                     </div>
 
                     <!-- Course -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold text-success">
                                 <i class="fas fa-book-open me-2"></i> الدورة
@@ -61,13 +61,25 @@
                     </div>
 
                     <!-- Result -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold text-success">
                                 <i class="fas fa-star me-2"></i> النتيجة
                             </label>
                             <div class="bg-white p-3 rounded-3 shadow-sm">
-                                {{ $sabr->result }}
+                                {{ $sabr->calculateResult() }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Level -->
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-success">
+                                <i class="fa-solid fa-turn-up"></i> مستوى السبر
+                            </label>
+                            <div class="bg-white p-3 rounded-3 shadow-sm">
+                                {{ $sabr->level->name }}
                             </div>
                         </div>
                     </div>
@@ -101,37 +113,44 @@
                         <thead class="bg-success text-white">
                             <tr>
                                 <th class="py-3"><i class="fas fa-bug me-2"></i> الخطأ</th>
-                                <th class="py-3"><i class="fas fa-hashtag me-2"></i> القيمة</th>
-                                <th class="py-3"><i class="fas fa-calculator me-2"></i> الكمية</th>
-                                <th class="py-3 text-end"><i class="fas fa-coins me-2"></i> الإجمالي</th>
+                                <th class="py-3"><i class="fas fa-calculator me-2"></i> التفاصيل</th>
+                                <th class="py-3 text-end"><i class="fas fa-coins me-2"></i> القيمة</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($sabr->mistakesRecords as $mistakeRecord)
+                            @foreach ($sabr->sabrMistakes as $mr)
+                                @php
+                                    $penaltyVal = $mr->mistake->levels->firstWhere('id', $lvlId)->pivot->value ?? 0;
+                                @endphp
                                 <tr>
-                                    <td class="align-middle">{{ $mistakeRecord->mistake->name }}</td>
+                                    <td class="align-middle">{{ $mr->mistake->name }}</td>
                                     <td class="align-middle">
-                                        {{ optional($mistakeRecord->mistake->levels->firstWhere('id', $lvlId))->pivot->value ?? 0 }}
+                                        صفحة: {{ $mr->page_number }}<br>
+                                        سطر: {{ $mr->line_number }}<br>
+                                        كلمة: {{ $mr->word_number }}
                                     </td>
-                                    <td class="align-middle">{{ $mistakeRecord->quantity }}</td>
                                     <td class="align-middle text-end fw-bold text-success">
-                                        {{ number_format($mistakeRecord->mistake->levels->firstWhere('id', $lvlId)->pivot->value * $mistakeRecord->quantity) }}
+                                        {{ number_format($penaltyVal) }}
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr class="bg-warning-subtle">
-                                <td colspan="3" class="text-end fw-bold">المجموع:</td>
+                                <td colspan="2" class="text-end fw-bold">المجموع:</td>
                                 <td class="text-end fw-bold text-danger">
-                                    {{ number_format(
-                                        $sabr->sabrMistakes->sum(function ($item) use ($lvlId) {
-                                            return $item->mistake->levels->firstWhere('id', $lvlId)->pivot->value * $item->quantity;
-                                        }),
-                                    ) }}
+                                    @php
+                                        $totalPenalty = $sabr->sabrMistakes->sum(
+                                            fn($item) => $item->mistake->levels->firstWhere('id', $lvlId)->pivot
+                                                ->value ?? 0,
+                                        );
+                                        $rawScore = 100 - $totalPenalty;
+                                    @endphp
+                                    100 - {{ number_format($totalPenalty) }} = {{ $rawScore }}
                                 </td>
                             </tr>
                         </tfoot>
+
                     </table>
                 </div>
             </div>

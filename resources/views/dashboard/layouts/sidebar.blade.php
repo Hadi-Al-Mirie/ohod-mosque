@@ -3,10 +3,13 @@
     <div class="sidepanel-inner d-flex flex-column">
         <a href="" id="sidepanel-close" class="sidepanel-close d-xl-none">&times;</a>
         <div class="app-branding">
-            <a class="app-logo" href=""><img class="logo-icon me-2"
-                    src="{{ asset('assets/images/app-logo.png') }}" alt="logo"><span
-                    class="logo-text">{{ config('app.name') }}</span></a>
+            <a href="" class="app-logo d-flex flex-column align-items-center text-center">
+                <img src="{{ asset('assets/images/app-logo.png') }}" alt="logo" class="logo-icon mb-2"
+                    style="width: 100px; height: auto;">
+                <span class="logo-text">{{ config('app.name') }}</span>
+            </a>
         </div>
+
         <nav id="app-nav-main" class="app-nav app-nav-main flex-grow-1">
             <ul class="app-menu list-unstyled accordion" id="menu-accordion">
                 <li class="nav-item">
@@ -19,7 +22,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}"
+                    <a class="nav-link {{ request()->routeIs('admin.courses.*') && !request()->routeIs('admin.courses.index') ? 'active' : '' }}"
                         href="{{ route('admin.courses.show', ['course' => course_id()]) }}">
                         <span class="nav-icon">
                             <i class="fas fa-graduation-cap"></i>
@@ -47,6 +50,16 @@
                         <span class="nav-link-text">الأساتذة</span>
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.helper-teachers.*') ? 'active' : '' }}"
+                        href="{{ route('admin.helper-teachers.index') }}">
+                        <span class="nav-icon">
+                            <i class="fa-solid fa-user-nurse"></i>
+                        </span>
+                        <span class="nav-link-text">الأساتذة المساعدون</span>
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('admin.students.*') ? 'active' : '' }}"
                         href="{{ route('admin.students.index') }}">
@@ -67,7 +80,9 @@
                                 !request()->routeIs('admin.attendances.justifications.*')) ||
                             (request()->routeIs('admin.notes.*') &&
                                 !request()->routeIs('admin.notes.requests') &&
-                                !request()->routeIs('admin.notes.approve'));
+                                !request()->routeIs('admin.notes.approve'))
+                                ? true
+                                : false;
                     @endphp
                     <a class="nav-link submenu-toggle {{ $isArchiveActive ? 'active' : '' }}" href="#"
                         data-bs-toggle="collapse" data-bs-target="#submenu-1"
@@ -97,7 +112,7 @@
                             <li class="submenu-item">
                                 <a class="submenu-link {{ request()->routeIs('admin.sabrs.*') ? 'active' : '' }}"
                                     href="{{ route('admin.sabrs.index') }}">
-                                    السبورة
+                                    السبر
                                 </a>
                             </li>
                             <li class="submenu-item">
@@ -117,19 +132,59 @@
                             <li class="submenu-item">
                                 <a class="submenu-link {{ request()->routeIs('admin.awqaf.*') ? 'active' : '' }}"
                                     href="{{ route('admin.awqafs.index') }}">
-                                    سبورة الأوقاف
+                                    سبر الأوقاف
                                 </a>
                             </li>
+
+                        </ul>
+                    </div>
+                </li>
+
+
+
+
+
+                <li class="nav-item has-submenu">
+                    @php
+                        $isHistoryActive =
+                            request()->routeIs('admin.courses.index') || request()->routeIs('admin.oldcourse.show')
+                                ? true
+                                : false;
+                    @endphp
+                    <a class="nav-link submenu-toggle {{ $isHistoryActive ? 'active' : '' }}" href="#"
+                        data-bs-toggle="collapse" data-bs-target="#submenu-2"
+                        aria-expanded="{{ $isHistoryActive ? 'true' : 'false' }}" aria-controls="submenu-2">
+                        <span class="nav-icon">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                        <span class="nav-link-text">السجل</span>
+                        <span class="submenu-arrow">
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-chevron-down"
+                                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <div id="submenu-2" class="collapse submenu submenu-2 {{ $isHistoryActive ? 'show' : '' }}"
+                        data-bs-parent="#menu-accordion">
+                        <ul class="submenu-list list-unstyled">
                             <li class="submenu-item">
-                                <a class="submenu-link {{ request()->routeIs('admin.courses.index') ? 'active' : '' }}"
+                                <a class="submenu-link {{ request()->routeIs('admin.courses.index') || request()->routeIs('admin.oldcourse.show') ? 'active' : '' }}"
                                     href="{{ route('admin.courses.index') }}">
-                                    <i class="fa-solid fa-clock-rotate-left"></i>
                                     الدورات السابقة
                                 </a>
                             </li>
                         </ul>
                     </div>
                 </li>
+
+
+
+
+
+
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('admin.notes.requests') || request()->routeIs('admin.notes.approve') ? 'active' : '' }}"
                         href="{{ route('admin.notes.requests') }}">
@@ -152,37 +207,3 @@
         </nav>
     </div>
 </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidepanel = document.getElementById('app-sidepanel');
-        const sidepanelClose = document.getElementById('sidepanel-close');
-
-        // Mobile Toggle: On click of elements that toggle collapse
-        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
-            button.addEventListener('click', function(e) {
-                if (window.innerWidth < 1200) {
-                    sidepanel.classList.toggle('sidepanel-visible');
-                }
-            });
-        });
-
-        // Close Sidepanel on Mobile
-        sidepanelClose.addEventListener('click', function(e) {
-            e.preventDefault();
-            sidepanel.classList.remove('sidepanel-visible');
-        });
-
-        // Keep submenu open when child is active
-        const currentPath = window.location.pathname;
-        document.querySelectorAll('.submenu-link').forEach(link => {
-            if (link.href.includes(currentPath)) {
-                link.classList.add('active');
-                const submenu = document.getElementById('submenu-1');
-                if (submenu) {
-                    submenu.classList.add('show');
-                    submenu.previousElementSibling.setAttribute('aria-expanded', 'true');
-                }
-            }
-        });
-    });
-</script>

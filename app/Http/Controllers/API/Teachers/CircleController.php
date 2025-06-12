@@ -17,7 +17,7 @@ use App\Models\Sabr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 class CircleController extends Controller
 {
     public function info()
@@ -26,7 +26,6 @@ class CircleController extends Controller
             $activeCourse = Course::where('is_active', true)->firstOrFail();
             $user = Auth::user();
             $teacher = $user->teacher;
-
             if (!$teacher) {
                 return response()->json([
                     'message' => 'هذا الحساب غير مرتبط بسجل أستاذ.',
@@ -160,8 +159,20 @@ class CircleController extends Controller
             $recitationRank = $this->rankByRecitations($allCircles, $circle->id, $courseId);
             $sabrRank = $this->rankBySabrs($allCircles, $circle->id, $courseId);
 
+
+            $circleTotals = Circle::all()
+                ->map(fn($c) => [
+                    'id' => $c->id,
+                    'points' => $c->students->sum(fn($s) => $s->points),
+                ])
+                ->sortByDesc('points')
+                ->values();
+
+            // Find this circle’s rank (index + 1)
+            $circleOverallRank = $circleTotals->search(fn($r) => $r['id'] === $circle->id) + 1;
             return response()->json([
                 'circle' => $circle->name,
+                'studentCount' => $circle->students->count(),
                 'attendanceStats' => $attendanceStats,
                 'recitationCount' => $recitationCount,
                 'recitationAvg' => $recitationAvg,
@@ -169,6 +180,8 @@ class CircleController extends Controller
                 'sabrCount' => $sabrCount,
                 'sabrAvg' => $sabrAvg,
                 'sabrBySetting' => $sabrBySetting,
+                'circleOverallRank' => $circleOverallRank,
+                'circlesCount' => Circle::count(),
                 'attendanceRank' => $attendanceRank,
                 'recitationRank' => $recitationRank,
                 'sabrRank' => $sabrRank,
@@ -176,6 +189,7 @@ class CircleController extends Controller
                 'topReciters' => $topReciters,
                 'topSabrs' => $topSabrs,
                 'topAttendees' => $topAttendees,
+
             ], 200);
 
         } catch (\Exception $e) {
@@ -186,6 +200,84 @@ class CircleController extends Controller
         }
     }
 
+
+    public function basicInfo(Student $student)
+    {
+        try {
+            // 1) Make sure the currently authenticated user is a teacher
+            $user = Auth::user();
+            $teacher = $user->teacher;
+            if (!$teacher || is_null($student->getKey())) {
+                return response()->json([
+                    'message' => ' هذا الحساب غير مرتبط بسجل أستاذ.أو أن الطالب غير موجود'
+                ], 403);
+            }
+
+            // 2) Ensure the student belongs to that teacher’s circle
+            if ($student->circle_id !== $teacher->circle_id) {
+                return response()->json([
+                    'message' => 'حلقة الطالب غير متوافقة مع حلقة الأستاذ.'
+                ], 403);
+            }
+
+            // 3) Safe: get active course (may be null)
+            $course = Student::activeCourse();
+
+            // 4) Gather counts
+            $recitationsCount = $course
+                ? $student->recitations()->where('course_id', $course->id)->count()
+                : 0;
+            $recitationsNames = $student->resultCounts('recitation');
+            $sabrsCount = $course
+                ? $student->sabrs()->where('course_id', $course->id)->count()
+                : 0;
+            $sabrsNames = $student->resultCounts('sabr');
+            $positiveNotes = $student->notes()
+                ->where('course_id', $course?->id)
+                ->where('type', 'positive')
+                ->count();
+
+            $negativeNotes = $student->notes()
+                ->where('course_id', $course?->id)
+                ->where('type', 'negative')
+                ->count();
+
+            // 5) Build and return JSON
+            return response()->json([
+                'id' => $student->qr_token,
+                'name' => $student->user->name,
+                'student_phone' => $student->student_phone,
+                'father_phone' => $student->father_phone,
+                'points' => $student->points,
+                'rank_in_circle' => $student->rankInCircle(),
+                'rank_in_mosque' => $student->rankInMosque(),
+                'recitations_count' => $recitationsCount,
+                'recitations_names' => $recitationsNames,
+                'sabrs_count' => $sabrsCount,
+                'sabrs_names' => $sabrsNames,
+                'positive_notes' => $positiveNotes,
+                'negative_notes' => $negativeNotes,
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            // This shouldn’t really happen because of route‐model binding,
+            // but in case someone bypasses that:
+            return response()->json([
+                'message' => 'طالب غير موجود.'
+            ], 404);
+
+        } catch (\Exception $e) {
+            // Unexpected errors
+            \Log::error('Error in basicInfo()', [
+                'student_id' => $student->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'حدث خطأ أثناء جلب معلومات الطالب.'
+            ], 500);
+        }
+    }
     public function students()
     {
         try {
@@ -201,7 +293,13 @@ class CircleController extends Controller
             $students = Student::with('user')
                 ->where('circle_id', $circle->id)
                 ->get()
-                ->pluck('user.name', 'id');
+                ->map(function ($student) {
+                    return [
+                        'id' => $student->id,
+                        'name' => $student->user->name,
+                        'qr_token' => $student->qr_token
+                    ];
+                });
             return response()->json([
                 'circle' => $circle->name,
                 'students' => $students,

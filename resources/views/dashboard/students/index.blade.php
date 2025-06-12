@@ -3,25 +3,18 @@
 @section('content')
     <div class="container-fluid mt-5">
         @include('dashboard.layouts.alert')
-
         <h1 class="h3 mb-4 fw-bold text-center"
             style="font-family: 'IBMPlexSansArabic', sans-serif; font-size: 2.2rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); color: var(--bs-primary);">
             قائمة الطلاب
         </h1>
         <div class="mb-4">
             <div class="row g-3">
-                <div class="col-12 col-lg-5">
-                    <form method="GET" action="{{ route('admin.students.index') }}">
-                        <div class="input-group shadow-sm">
-                            <input type="text" name="search_value" class="form-control w-25 search-input rounded-start"
-                                placeholder="🔍 ابحث عن طالب..." value="{{ request('search_value') }}">
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
+                <div class="col-12 col-lg-6">
+                    <button class="btn btn-secondary mb-3" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-2"></i> خيارات البحث
+                    </button>
                 </div>
-                <div class="col-12 col-lg-7 text-lg-end">
+                <div class="col-12 col-lg-6 text-lg-end">
                     <a href="{{ route('admin.students.create') }}" class="btn btn-success hover-scale">
                         <i class="fas fa-user-plus me-2"></i> إضافة طالب
                     </a>
@@ -49,7 +42,7 @@
                                                 الحضور
                                             </option>
                                             <option value="sabrs" {{ request('order_by') == 'sabrs' ? 'selected' : '' }}>
-                                                السبورة
+                                                السبر
                                             </option>
                                             <option value="recitations"
                                                 {{ request('order_by') == 'recitations' ? 'selected' : '' }}>
@@ -73,16 +66,16 @@
                                             {{ $student->circle->name ?? 'غير محدد' }}
                                         </span>
                                     </td>
-                                    @php($order = request('order_by', 'points'))
-
+                                    @php($orderBy = request('order_by', 'points'))
+                                    @endphp
                                     <td>
-                                        @if ($order === 'points')
+                                        @if ($orderBy === 'points')
                                             {{ $student->cashed_points }}
-                                        @elseif($order === 'attendance')
+                                        @elseif($orderBy === 'attendance')
                                             {{ $student->attendance_points }}
-                                        @elseif($order === 'sabrs')
+                                        @elseif($orderBy === 'sabrs')
                                             {{ $student->sabrs_points }}
-                                        @elseif($order === 'recitations')
+                                        @elseif($orderBy === 'recitations')
                                             {{ $student->recitations_points }}
                                         @endif
                                     </td>
@@ -104,6 +97,50 @@
         {{-- Pagination --}}
         <div class="mt-4 d-flex justify-content-center">
             {{ $students->appends(request()->query())->links('pagination::bootstrap-5') }}
+        </div>
+
+
+
+        {{-- Filter Modal --}}
+        <div class="modal fade" id="filterModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title w-100 text-center text-white">
+                            <i class="fas fa-filter me-2"></i> فلاتر البحث
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal">
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @php
+                            $myFilters = [
+                                ['key' => 'search_value', 'label' => 'اسم الطالب', 'type' => 'text'],
+                                [
+                                    'key' => 'circle_id',
+                                    'label' => 'اسم الحلقة',
+                                    'type' => 'select',
+                                    'options' => $circles,
+                                ],
+                            ];
+                        @endphp
+                        <x-filter-box :action="route('admin.students.index')" :filters="$myFilters" />
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <div>
+                            {{-- Apply filters --}}
+                            <button type="submit" form="filter-form" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> تطبيق
+                            </button>
+                        </div>
+                        {{-- Clear all filters by reloading the page without any query --}}
+                        <a href="{{ route('admin.students.index') }}" class="btn btn-danger">
+                            <i class="fas fa-times me-1"></i> مسح الفلاتر
+                        </a>
+
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 @endsection

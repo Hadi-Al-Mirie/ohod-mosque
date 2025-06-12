@@ -3664,7 +3664,7 @@ fieldset:disabled .btn {
     pointer-events: none;
     background-color: var(--bs-btn-disabled-bg);
     border-color: var(--bs-btn-disabled-border-color);
-    opacity: var(--bs-btn-disabled-opacity)
+    opacity: var(--bs-btn-disabled-opacity);
 }
 
 
@@ -3672,7 +3672,7 @@ fieldset:disabled .btn {
 
 .btn-secondary {
     --bs-btn-color: #fff;
-    --bs-btn-bg: rgb(111, 124, 130);
+    --bs-btn-bg: rgb(140, 155, 161);
     --bs-btn-border-color: #5d6778;
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #4f5866;
@@ -14418,7 +14418,7 @@ button.close:focus {
 
 /* ======= Branding ======= */
 .app-branding {
-    height: 60px;
+    height: auto !important;
     padding-top: 1rem;
     padding-left: 1rem;
     margin-bottom: 1rem;

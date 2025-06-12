@@ -26,30 +26,11 @@ class CourseController extends Controller
         $request->validate([
             'search_value' => 'nullable|string|max:255|min:1'
         ]);
-        $query = Course::query();
-
+        $query = Course::query()->where('is_active', false);
         if ($request->has('search_value')) {
             $query->where('name', 'like', '%' . $request->search_value . '%');
         }
-
-        // $orderBy = $request->input('order_by', 'date');
-
-        // switch ($orderBy) {
-        //     case 'name':
-        //         $query->orderBy('name');
-        //         break;
-        //     case 'date':
-        //         $query->orderByDesc('created_at');
-        //         break;
-        //     case 'points':
-        //         $query->orderByDesc('points');
-        //         break;
-        //     default:
-        //         $query->orderByDesc('created_at');
-        // }
-
         $courses = $query->paginate(10);
-
         return view('dashboard.courses.index', compact('courses'));
     }
 

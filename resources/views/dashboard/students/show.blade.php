@@ -120,7 +120,7 @@
         <!-- Recitation Metrics Card -->
         <div class="row mb-5">
             <div class="col-12">
-                <div class="card mb-5 shadow card-hover h-100">
+                <div class="card mb-2 shadow card-hover h-100">
                     <div class="card-header bg-primary text-white text-center py-4">
                         <h2 class="mb-0 text-white">
                             <i class="fa fa-book-open me-3"></i> معلومات التسميعات
@@ -130,9 +130,23 @@
                         <div class="row g-4 w-100"> <!-- Added h-100 here -->
                             {{-- Info Column --}}
                             <div class="col-md-6 h-100 d-flex flex-column gap-3">
-                                <div class="info-item  fs-5 bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1">
+                                <div
+                                    class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1 d-flex align-items-center">
                                     <i class="fas fa-file-alt me-2 text-standout"></i>
-                                    <strong class="fs-5">عدد الصفحات المسمعة:</strong> {{ $recitationsCount }}
+                                    <div class="d-flex align-items-center">
+                                        <!-- First value pair -->
+                                        <div class="d-flex align-items-center me-4 ms-3">
+                                            <strong class="fs-5">عدد التسميعات:</strong> {{ $recitationsCount }}
+                                        </div>
+
+                                        <!-- Vertical divider (line) -->
+                                        <div class="vr mx-1 mx-sm-2 opacity-75"></div>
+
+                                        <!-- Second value pair -->
+                                        <div class="d-flex align-items-center ms-4 me-3">
+                                            <strong class="fs-5">نقاط التسميعات : </strong> {{ $recitationsPoints }}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1">
@@ -154,11 +168,11 @@
                             </div>
 
                             {{-- Chart Column --}}
-                            <div class="col-md-6 h-100 d-flex flex-column ">
+                            <div class="col-md-6 d-flex flex-column ">
                                 @if ($recitationAvg >= 5)
                                     <div id="recitation-chart"
-                                        class="chart-container bg-light-gray h-100 mt-4 w-100 p-4 rounded-4 shadow-sm"
-                                        style="min-height: 300px;">
+                                        class="chart-container bg-light-gray h-100  w-100 p-4 rounded-4 shadow-sm"
+                                        style="min-height: 300px;padding-top: 5rem !important;">
                                     </div>
                                 @else
                                     <div
@@ -172,13 +186,16 @@
                                     </div>
                                 @endif
                             </div>
-                            <a href="{{ route('admin.recitations.index', [
-                                'search_value' => $student->user->name,
-                                'search_field' => 'student',
-                            ]) }}"
-                                class="btn mt-4 fs-4 w-100 bg-light-gray" style="">
-                                تفاصيل
-                            </a>
+                            <div class="col-12 d-flex justify-content-center mt-4">
+                                <a href="{{ route('admin.recitations.index', [
+                                    'search_value' => $student->user->name,
+                                    'search_field' => 'student',
+                                ]) }}"
+                                    class="btn btn-secondary mt-4 w-75 fs-5 bg-light-gray text-black" style="">
+                                    عرض التفاصيل
+                                    <i class="fas fa-arrow-left ms-2"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -191,16 +208,31 @@
                 <div class="card shadow card-hover h-100">
                     <div class="card-header bg-primary text-white text-center py-4">
                         <h2 class="mb-0 text-white">
-                            <i class="fas fa-chalkboard me-3"></i> معلومات السبورة
+                            <i class="fas fa-chalkboard me-3"></i> معلومات السبر
                         </h2>
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-4 w-100">
                             {{-- Info Column --}}
                             <div class="col-md-6 fs-5 h-100 d-flex flex-column gap-3">
-                                <div class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1">
+                                <div
+                                    class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1 d-flex align-items-center">
                                     <i class="fas fa-chalkboard-teacher me-2 text-standout"></i>
-                                    <strong class="fs-5">عدد السبور:</strong> {{ $sabrCount }}
+                                    <!-- Flex container for pairs + separator -->
+                                    <div class="d-flex align-items-center">
+                                        <!-- First value pair -->
+                                        <div class="d-flex align-items-center me-4 ms-3">
+                                            <strong class="fs-5">عدد السبور:</strong> {{ $sabrCount }}
+                                        </div>
+
+                                        <!-- Vertical divider (line) -->
+                                        <div class="vr mx-1 mx-sm-2 opacity-75"></div>
+
+                                        <!-- Second value pair -->
+                                        <div class="d-flex align-items-center me-3 ms-4">
+                                            <strong class="fs-5">نقاط السبور : </strong> {{ $sabrPoints }}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1">
@@ -229,21 +261,24 @@
                                 @else
                                     <div
                                         class="info-item bg-light-gray h-100 w-100 p-4 rounded-4 shadow-sm
-                                      d-flex align-items-center justify-content-center">
+                                    d-flex align-items-center justify-content-center">
                                         <div>
                                             <i class="fas fa-info-circle me-2 text-standout fa-2x"></i>
-                                            <h5 class="mt-2 mb-0">متوسط السبورة: {{ number_format($sabrAvg, 2) }}</h5>
+                                            <h5 class="mt-2 mb-0">متوسط السبر: {{ number_format($sabrAvg, 2) }}</h5>
                                         </div>
                                     </div>
                                 @endif
                             </div>
-                            <a href="{{ route('admin.sabrs.index', [
-                                'search_value' => $student->user->name,
-                                'search_field' => 'student',
-                            ]) }}"
-                                class="btn mt-4 fs-4 w-100 bg-light-gray" style="">
-                                تفاصيل
-                            </a>
+                            <div class="col-12 d-flex justify-content-center mt-4">
+                                <a href="{{ route('admin.sabrs.index', [
+                                    'search_value' => $student->user->name,
+                                    'search_field' => 'student',
+                                ]) }}"
+                                    class="btn btn-secondary mt-4 w-75 fs-5 bg-light-gray text-black" style="">
+                                    عرض التفاصيل
+                                    <i class="fas fa-arrow-left ms-2"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -370,7 +405,7 @@
                             <div class="col-4 d-flex">
                                 <div class="info-item bg-light-gray p-3 rounded-3 shadow-sm flex-fill">
                                     <i class="fas fa-star me-2 text-standout"></i>
-                                    <strong class="fs-5">نقاط الطالب الحالسية : </strong>
+                                    <strong class="fs-5">نقاط الطالب الحالية : </strong>
                                     <span class="badge bg-primary fs-4 mt-2">{{ $student->points }}</span>
                                 </div>
                             </div>
@@ -384,6 +419,9 @@
                                     <div class="mt-2 text-muted fs-6 mb-3">
                                         من أصل {{ $circleStudentsCount }} طالب
                                     </div>
+                                    <div class="mt-2 text-muted fs-6 mb-3">
+                                        تصنيف الأسبوع الماضي :{{ $rankInCirclePrev }}#
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex">
@@ -393,6 +431,9 @@
                                     <span class="badge bg-primary fs-4 mt-2">#{{ $rankInMosque }}</span>
                                     <div class="mt-2 text-muted fs-6 mb-3">
                                         من أصل {{ $mosqueStudentsCount }} طالب
+                                    </div>
+                                    <div class="mt-2 text-muted fs-6 mb-3">
+                                        تصنيف الأسبوع الماضي :{{ $rankInMosquePrev }}#
                                     </div>
                                 </div>
                             </div>
@@ -440,8 +481,16 @@
 
 
         <div class="text-center mt-4">
-            <a href="{{ route('admin.students.index') }}" class="btn btn-secondary hover-scale mt-5 mb-4 px-5 py-3">
-                العودة للقائمة<i class="fas fa-arrow-left me-2"></i>
+            <a href="{{ route('admin.students.index') }}" class="btn btn-secondary hover-scale mt-5 mb-4 px-5 py-3 me-2">
+                <i class="fas fa-arrow-left me-2"></i> العودة للقائمة
+            </a>
+            <a href="{{ route('admin.recitation.history', $student->id) }}"
+                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3">
+                <i class="fas fa-book me-2"></i> عرض سجل التسميع
+            </a>
+            <a href="{{ route('admin.sabr.history', $student->id) }}"
+                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3">
+                <i class="fas fa-book me-2"></i> عرض سجل السبر
             </a>
         </div>
     </div>
@@ -540,7 +589,7 @@
                 renderDonutChart(
                     "#sabr-chart",
                     {{ number_format($sabrAvg, 2, '.', '') }},
-                    "السبورة",
+                    "السبر",
                     '#049977'
                 );
             @endif

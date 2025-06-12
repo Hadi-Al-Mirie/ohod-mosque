@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Attendance extends Model
 {
     protected $fillable = ['course_id', 'student_id', 'attendance_date', 'type_id', 'by_id', 'justification'];
@@ -10,6 +11,10 @@ class Attendance extends Model
     public function student()
     {
         return $this->belongsTo(Student::class);
+    }
+    public function course()
+    {
+        return $this->BelongsTo(Course::class);
     }
     public function type()
     {

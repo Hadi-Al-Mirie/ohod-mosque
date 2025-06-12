@@ -116,33 +116,29 @@ class StudentSeeder extends Seeder
                         'student_id' => $student->id,
                         'by_id' => $adminForRec->random()->id,
                         'course_id' => $activeCourse->id,
-                        'page' => rand(1, 604),
-                        'level_id' => $levelId
+                        'page' => $page = rand(1, 604),
+                        'level_id' => $levelId,
+                        'is_final' => true,
                     ]);
 
-                    $penalty = 0;
-
-
                     foreach ($recitationMistakes as $m) {
-                        $qty = rand(0, 3);
-                        $pivot = optional(
-                            $lvl->mistakes()
-                                ->where('mistakes.id', $m->id)
-                                ->first()
-                        )->pivot;
-                        $val = $pivot->value ?? 0;
-                        $penalty += $val * $qty;
-
-                        MistakesRecorde::create([
-                            'mistake_id' => $m->id,
-                            'recitation_id' => $rec->id,
-                            'sabr_id' => null,
-                            'type' => 'recitation',
-                            'quantity' => $qty,
-                        ]);
+                        // for each mistake, create one record with coordinates
+                        $mis_numxy = rand(1, 3);
+                        for ($ixy = 1; $ixy <= $mis_numxy; $ixy++) {
+                            MistakesRecorde::create([
+                                'mistake_id' => $m->id,
+                                'recitation_id' => $rec->id,
+                                'sabr_id' => null,
+                                'type' => 'recitation',
+                                'page_number' => $page,
+                                'line_number' => rand(1, 30),   // or your own logic
+                                'word_number' => rand(1, 15),   // adjust ranges as needed
+                            ]);
+                        }
                     }
                 }
             }
+
 
             // Sabr on ~30% of working days
             $workDaysArr = iterator_to_array($period);
@@ -151,39 +147,35 @@ class StudentSeeder extends Seeder
 
             foreach ($datesToPick as $idx) {
                 $day = $workDaysArr[$idx];
-                if (!in_array($day->dayOfWeek, $workingDays))
+                if (!in_array($day->dayOfWeek, $workingDays)) {
                     continue;
+                }
 
+                $juzArray = range(1, rand(1, 30));
                 $sabr = Sabr::create([
                     'student_id' => $student->id,
                     'by_id' => $adminForSabr->random()->id,
                     'course_id' => $activeCourse->id,
-                    'juz' => json_encode(range(1, rand(1, 30))),
-                    'level_id' => $levelId
+                    'juz' => json_encode($juzArray),
+                    'level_id' => $levelId,
+                    'is_final' => true,
                 ]);
 
-                $penalty = 0;
-                $lvl = $student->level;
-
                 foreach ($sabrMistakes as $m) {
-                    $qty = rand(0, 3);
-                    $pivot = optional(
-                        $lvl->mistakes()
-                            ->where('mistakes.id', $m->id)
-                            ->first()
-                    )->pivot;
-                    $val = $pivot->value ?? 0;
-                    $penalty += $val * $qty;
-
+                    // pick one juz at random for coordinates, or loop all juzArray if you prefer
+                    $pageForMistake = $juzArray[array_rand($juzArray)] * 20; // approximate page
                     MistakesRecorde::create([
                         'mistake_id' => $m->id,
                         'recitation_id' => null,
                         'sabr_id' => $sabr->id,
                         'type' => 'sabr',
-                        'quantity' => $qty,
+                        'page_number' => $pageForMistake,
+                        'line_number' => rand(1, 30),
+                        'word_number' => rand(1, 15),
                     ]);
                 }
             }
+
             $student->update(['cashed_points' => $student->points]);
             // One random note
             $type = $faker->randomElement(['positive', 'negative']);
@@ -196,11 +188,20 @@ class StudentSeeder extends Seeder
                 'value' => $faker->numberBetween(5, 50) * ($type === 'negative' ? -1 : 1),
                 'status' => 'approved',
             ]);
-
-            // Refresh cached points
-            $student->update(['cashed_points' => $student->points]);
+            // $student = $student->fresh();
+            // $student->cashed_points = $student->points;
+            // $student->save();
+            // $this->command->info("✅ updated student points $$student->points !");
         }
-
+        // 2) Now that _all_ related rows are in the DB, recompute cashed_points in bulk
+        $this->command->info('Recomputing cashed_points for all students…');
+        Student::chunk(100, function ($students) {
+            foreach ($students as $stu) {
+                // this time, ->points can see every attendance/recitation/sabr/note
+                $stu->update(['cashed_points' => $stu->points]);
+                $this->command->info("  • #{$stu->id} → {$stu->cashed_points}");
+            }
+        });
         $this->command->info("✅ Created $totalStudents students with full records!");
     }
 }

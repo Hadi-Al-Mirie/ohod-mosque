@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->foreignId('by_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('course_id')->constrained()->onDelete('cascade');
             $table->json('juz')->nullable();
-            $table->enum('type', ['nomination ', 'retry', 'not_attend', 'success']);
+            $table->enum('type', ['nomination ', 'retry', 'rejected', 'not_attend', 'success']);
             $table->foreignId('level_id')->nullable()->constrained()->nullOnDelete();
             $table->integer('result')->nullable();
             $table->timestamps();

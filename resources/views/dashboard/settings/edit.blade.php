@@ -32,25 +32,27 @@
                                     <div class="border rounded-3 p-3 h-100">
                                         <h6 class="text-center mb-3">{{ $setting->name }}</h6>
                                         <div class="row g-2 align-items-center">
-                                            <div class="col-3 text-end">
+                                            <div class="col-auto text-end">
                                                 <label for="min_{{ $setting->id }}" class="form-label">من</label>
                                             </div>
-                                            <div class="col-9">
+                                            <div class="col-auto">
                                                 <input type="number" id="min_{{ $setting->id }}"
                                                     name="result_settings[{{ $setting->id }}][min_res]"
-                                                    class="border form-control fw-bold form-control-sm"
+                                                    class="form-control form-control-sm fw-bold"
                                                     value="{{ old("result_settings.{$setting->id}.min_res", $setting->min_res) }}">
                                             </div>
-                                            <div class="col-3 text-end">
+
+                                            <div class="col-auto text-end">
                                                 <label for="max_{{ $setting->id }}" class="form-label">إلى</label>
                                             </div>
-                                            <div class="col-9">
+                                            <div class="col-auto">
                                                 <input type="number" id="max_{{ $setting->id }}"
                                                     name="result_settings[{{ $setting->id }}][max_res]"
-                                                    class="border fw-bold form-control form-control-sm"
+                                                    class="form-control form-control-sm fw-bold"
                                                     value="{{ old("result_settings.{$setting->id}.max_res", $setting->max_res) }}">
                                             </div>
                                         </div>
+
                                         <div class="mt-3">
                                             <label for="points_{{ $setting->id }}"
                                                 class="text-center form-label">النقاط</label>

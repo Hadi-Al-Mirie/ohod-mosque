@@ -17,11 +17,9 @@ class UpdateCashedPoints extends Command
         Student::chunk(100, function ($students) {
             foreach ($students as $student) {
                 $student->update(['cashed_points' => $student->points]);
+                $this->info("updated cashed_points  {$student->points}");
             }
-            $this->info("Processed batch of {$students->count()} students.");
         });
-
-        $this->info('All students updated successfully.');
         return 0;
     }
 }

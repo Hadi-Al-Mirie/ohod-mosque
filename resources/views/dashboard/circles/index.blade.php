@@ -14,18 +14,6 @@
                         <div class="input-group shadow-sm hover-scale">
                             <input type="text" name="search_value" class="form-control search-input rounded-start"
                                 placeholder="أدخل اسم الحلقة" value="{{ request('search_value') }}">
-                            <select name="order_by" class="form-select select-style">
-                                <option value="" {{ request('order_by') == '' ? 'selected' : '' }}>ترتيب افتراضي
-                                </option>
-                                <option value="points" {{ request('order_by') == 'points' ? 'selected' : '' }}>إجمالي النقاط
-                                </option>
-                                <option value="recitations" {{ request('order_by') == 'recitations' ? 'selected' : '' }}>عدد
-                                    التسميعات</option>
-                                <option value="sabrs" {{ request('order_by') == 'sabrs' ? 'selected' : '' }}>عدد السبور
-                                </option>
-                                <option value="attendance" {{ request('order_by') == 'attendance' ? 'selected' : '' }}>معدل
-                                    الحضور</option>
-                            </select>
                             <button class="btn btn-primary " type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -50,20 +38,9 @@
                                 <th class="py-3">اسم الحلقة</th>
                                 <th class="py-3">الأستاذ</th>
                                 <th class="py-3">عدد الطلاب</th>
-                                @if (request('order_by'))
-                                    @if (request('order_by') == 'sabrs')
-                                        <th class="py-3 text-center">{{ 'عدد السبورة' }}</th>
-                                    @endif
-                                    @if (request('order_by') == 'recitations')
-                                        <th class="py-3 text-center">{{ 'عدد التسميعات' }}</th>
-                                    @endif
-                                    @if (request('order_by') == 'attendance')
-                                        <th class="py-3 text-center">{{ 'معدل الحضور' }}</th>
-                                    @endif
-                                    @if (request('order_by') == 'points')
-                                        <th class="py-3 text-center">{{ 'إجمالي النقاط' }}</th>
-                                    @endif
-                                @endif
+                                <th class="py-3">
+                                    النقاط
+                                </th>
                                 <th class="py-3">عرض التفاصيل</th>
                             </tr>
                         </thead>
@@ -77,52 +54,11 @@
                                         </span>
                                     </td>
                                     <td class="align-middle fw-bold text-info">{{ $circle->students_count }}</td>
-                                    @if (request('order_by'))
-                                        <td class="align-middle">
-                                            @switch(request('order_by'))
-                                                @case('points')
-                                                    <span class="fw-bold text-success">
-                                                        {{ $circle->points ?? 0 }}
-                                                    </span>
-                                                @break
-
-                                                @case('recitations')
-                                                    <div class="progress" style="height: 25px">
-                                                        <div class="progress-bar bg-info" role="progressbar"
-                                                            style="width: {{ $circle->recitations_count }}%">
-                                                            {{ $circle->recitations_count }}
-                                                        </div>
-                                                    </div>
-                                                @break
-
-                                                @case('sabrs')
-                                                    <div class="progress" style="height: 25px">
-                                                        <div class="progress-bar bg-warning" role="progressbar"
-                                                            style="width: {{ $circle->sabrs_count }}%">
-                                                            {{ $circle->sabrs_count }}
-                                                        </div>
-                                                    </div>
-                                                @break
-
-                                                @case('attendance')
-                                                    @php
-                                                        $attCount = $circle->attendances_count;
-                                                        $present = $circle->present_count;
-                                                        $rate =
-                                                            $attCount > 0
-                                                                ? number_format(($present / $attCount) * 100, 2)
-                                                                : 0;
-                                                    @endphp
-                                                    <div class="progress" style="height: 25px">
-                                                        <div class="progress-bar bg-success" role="progressbar"
-                                                            style="width: {{ $rate }}%">
-                                                            {{ $rate }}%
-                                                        </div>
-                                                    </div>
-                                                @break
-                                            @endswitch
-                                        </td>
-                                    @endif
+                                    <td class="align-middle">
+                                        <span class="fw-bold text-success">
+                                            {{ $circle->points ?? 0 }}
+                                        </span>
+                                    </td>
                                     <td class="align-middle">
                                         <a href="{{ route('admin.circles.show', $circle->id) }}"
                                             class="btn btn-sm btn-primary hover-scale">

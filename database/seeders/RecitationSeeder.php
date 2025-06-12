@@ -2,64 +2,62 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Recitation;
-use App\Models\RecitationMistake;
+use App\Models\MistakesRecorde;
+use App\Models\Course;
 use App\Models\Student;
 use App\Models\User;
-use App\Models\Course;
-use App\Models\Mistake;
-use Illuminate\Database\Seeder;
 
 class RecitationSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $students = Student::all();
-        $admins = User::whereIn('role_id', [1, 2])->get();
-        $courses = Course::all();
-        $mistakes = Mistake::all();
+        // assume student #1 exists
+        $student = Student::findOrFail(1);
 
-        if ($students->isEmpty() || $admins->isEmpty() || $courses->isEmpty() || $mistakes->isEmpty()) {
-            $this->command->info("One or more required datasets (students, admins, courses, mistakes) are empty. Please seed them first.");
-            return;
-        }
+        // pick an instructor/admin for by_id
+        $byId = User::whereIn('role_id', [1, 2, 3])->first()->id;
 
-        for ($i = 0; $i < 50; $i++) {
-            $student = $students->random();
-            $course = $courses->random();
-            $admin = $admins->random();
-            $page = random_int(1, 604);
-            // Create a recitation record with a temporary perfect score of 100.
-            $recitation = Recitation::create([
-                'student_id' => $student->id,
-                'by_id' => $admin->id,
-                'course_id' => $course->id,
-                'result' => 100,
-                'page' => $page
+        // active course
+        $courseId = Course::where('is_active', true)->value('id');
+
+        // common data
+        $data = [
+            'student_id' => $student->id,
+            'by_id' => $byId,
+            'course_id' => $courseId,
+            'page' => 50,
+            'level_id' => $student->level_id,
+            'is_final' => false,
+        ];
+
+        // 1) First recitation, with two mistake_records (mistake_id = 4)
+        $rec1 = Recitation::create($data);
+        for ($i = 0; $i < 2; $i++) {
+            MistakesRecorde::create([
+                'mistake_id' => 4,
+                'recitation_id' => $rec1->id,
+                'sabr_id' => null,
+                'type' => 'recitation',
+                'page_number' => 50,
+                'line_number' => rand(1, 30),
+                'word_number' => rand(1, 15),
             ]);
-
-            $totalPenalty = 0;
-
-            // For each mistake type, always create a RecitationMistake record.
-            foreach ($mistakes as $mistake) {
-                // Generate a random quantity between 0 and 3.
-                $quantity = rand(0, 3);
-                $totalPenalty += $mistake->value * $quantity;
-
-
-            }
-
-            // Calculate final result assuming a perfect score of 100.
-            $calculatedResult = 100 - $totalPenalty;
-            if ($calculatedResult < 0) {
-                $calculatedResult = 0;
-            }
-            $recitation->update(['result' => $calculatedResult]);
         }
 
-        $this->command->info("50 recitation records have been created with a RecitationMistake record for each mistake type.");
+        // 2) Second recitation, same page, but no mistakes attached
+        $rec2 = Recitation::create($data);
+        for ($i = 0; $i < 2; $i++) {
+            MistakesRecorde::create([
+                'mistake_id' => 5,
+                'recitation_id' => $rec2->id,
+                'sabr_id' => null,
+                'type' => 'recitation',
+                'page_number' => 50,
+                'line_number' => rand(1, 30),
+                'word_number' => rand(1, 15),
+            ]);
+        }
     }
 }

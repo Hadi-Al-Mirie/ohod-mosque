@@ -74,7 +74,7 @@ class AwqafController extends Controller
                     'max:100',
                 ],
             ], [
-                'type.required' => 'اختر حالة الوقف.',
+                'type.required' => 'اختر حالة سبر الأوقاف.',
                 'type.in' => 'الحالة المحددة غير صالحة.',
                 'result.required' => 'النتيجة مطلوبة عند اختيار النجاح أو إعادة محاولة.',
                 'result.numeric' => 'النتيجة يجب أن تكون عدداً.',

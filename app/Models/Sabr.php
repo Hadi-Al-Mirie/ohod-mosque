@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 class Sabr extends Model
 {
-    protected $fillable = ['student_id', 'by_id', 'course_id', 'level_id', 'juz'];
-
+    protected $fillable = ['student_id', 'by_id', 'course_id', 'level_id', 'juz', 'is_final'];
+    protected $casts = [
+        'juz' => 'array',
+    ];
     public function student()
     {
         return $this->belongsTo(Student::class);
@@ -36,28 +38,6 @@ class Sabr extends Model
     {
         return $this->belongsTo(Level::class);
     }
-    public function calculateResult(): string
-    {
-        $level = $this->level;
-        $mis_values = $level
-            ->mistakes()
-            ->where('mistakes.type', 'sabr')
-            ->get()
-            ->pluck('pivot.value', 'id')
-        ;
-        $records = $this->mistakesRecords()
-            ->with('mistake')
-            ->get()
-        ;
-        return assessmentResultName(
-            100,
-            $records,
-            $mis_values,
-            'sabr'
-        );
-    }
-
-
     public function calculateRawScore(): int
     {
         $misValues = $this->level
@@ -66,8 +46,33 @@ class Sabr extends Model
             ->pluck('level_mistakes.value', 'mistakes.id');
 
         $penalty = $this->sabrMistakes
-            ->sum(fn($r) => $misValues->get($r->mistake_id, 0) * $r->quantity);
+            ->sum(fn($r) => $misValues->get($r->mistake_id, 0));
 
         return max(0, min(100, 100 - $penalty));
+    }
+
+    public function calculateResult(): string
+    {
+        $level = $this->level;
+        // 1) load the related Mistake models with their pivot data
+        $mistakeModels = $level
+            ->mistakes()
+            ->where('mistakes.type', 'recitation')
+            ->get();
+
+        // 2) now pluck from the resulting Collection, which knows about ->pivot->value
+        $misValues = $mistakeModels->pluck('pivot.value', 'id');
+
+
+        $records = $this->mistakesRecords()
+            ->with('mistake')
+            ->get();
+
+        return assessmentResultName(
+            100,
+            $records,
+            $misValues,
+            'sabr'
+        );
     }
 }

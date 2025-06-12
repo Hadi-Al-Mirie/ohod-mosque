@@ -75,7 +75,7 @@
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100 hover-shadow-lg transition-all">
                     <div class="card-header bg-gradient-warning text-white text-center">
-                        <span class="fw-bold">السبورة</span>
+                        <span class="fw-bold">السبر</span>
                     </div>
                     <div class="card-body py-4">
                         <div class="row text-center">
@@ -88,7 +88,7 @@
                                 <h2 class="display-6 fw-bold text-primary mb-1">#{{ $sabrRank }}</h2>
                             </div>
                             <div class="col-4">
-                                <small class="text-muted">متوسط السبورة</small>
+                                <small class="text-muted">متوسط السبر</small>
                                 <h2 class="display-6 fw-bold text-primary mb-1">{{ number_format($sabrAvg, 2) }}</h2>
                             </div>
                         </div>
@@ -119,7 +119,7 @@
             <!-- Top Sabrs -->
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-warning text-white text-center">أفضل 3 في السبورة</div>
+                    <div class="card-header bg-warning text-white text-center">أفضل 3 في السبر</div>
                     <div class="card-body">
                         <ol class="list-group list-group-numbered">
                             @foreach ($topSabrs as $item)

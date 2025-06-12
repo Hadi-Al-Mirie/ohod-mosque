@@ -9,6 +9,7 @@ use Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use App\Models\AttendanceJustificationRequest;
 class AttendanceController extends Controller
 {
@@ -31,11 +32,22 @@ class AttendanceController extends Controller
                     'message' => 'هذا الطالب سبق وتسجيل حضوره أو غيابه المبرر أو تأخيره لهذا اليوم.'
                 ], 409);
             }
-            $teacher = Auth::user()->teacher;
-            if ($student->circle_id != $teacher->circle_id) {
-                return response()->json([
-                    'message' => 'لا يمكن تسجيل حضور لطالب لا ينتمي لحلقة الأستاذ.'
-                ], 406);
+            $user = Auth::user();
+
+            if ($user->role_id === 2) {
+                // real teacher: only their own circle
+                $teacher = $user->teacher;
+                if (!$teacher || $student->circle_id !== $teacher->circle_id) {
+                    return response()->json([
+                        'message' => 'لا يمكن تسجيل حضور لطالب لا ينتمي لحلقة الأستاذ.'
+                    ], 406);
+                }
+            } elseif ($user->role_id === 3) {
+                // helper teacher: must have permission #2
+                $helper = $user->helperTeacher;
+                if (!$helper || !$helper->permissions->contains('id', 2)) {
+                    throw new AccessDeniedHttpException('ليس لديك صلاحية تسجيل الحضور.');
+                }
             }
             $attendance = Attendance::create([
                 'student_id' => $student->id,
@@ -57,6 +69,10 @@ class AttendanceController extends Controller
             return response()->json([
                 'message' => $error,
             ], 422);
+        } catch (AccessDeniedHttpException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 403);
         } catch (\Exception $e) {
             \Log::error('Unexpected error in AttendanceController@justify', [
                 'message' => $e->getMessage(),

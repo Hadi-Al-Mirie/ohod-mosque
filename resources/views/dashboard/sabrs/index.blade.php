@@ -5,7 +5,7 @@
         @include('dashboard.layouts.alert')
         <h1 class="h3 mb-4 fw-bold text-center"
             style="font-family: 'IBMPlexSansArabic', sans-serif; font-size: 2.2rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); color: var(--bs-primary);">
-            أرشيف السبورة
+            أرشيف السبر
         </h1>
         <div class="mb-4">
             <div class="row g-3">
@@ -43,11 +43,6 @@
                         </div>
                     </form>
                 </div>
-                <div class="col-12 col-lg-4 text-lg-end">
-                    <a href="{{ route('admin.sabrs.create') }}" class="btn btn-success hover-scale">
-                        <i class="fas fa-user-plus me-2"></i> تسجيل سبر جديد
-                    </a>
-                </div>
             </div>
         </div>
         <div class="card shadow-lg border-0">
@@ -58,6 +53,7 @@
                             <tr>
                                 <th class="py-3"><i class="fas fa-user me-2"></i> الطالب</th>
                                 <th class="py-3"><i class="fas fa-chalkboard-teacher me-2"></i> الأستاذ</th>
+                                <th class="py-3"><i class="fa-solid fa-file"></i> التاريخ</th>
                                 <th class="py-3"><i class="fas fa-star me-2"></i> النتيجة</th>
                                 <th class="py-3"><i class="fas fa-eye me-2"></i> التحكم</th>
                             </tr>
@@ -76,6 +72,9 @@
                                         @else
                                             {{ $sabr->creator->name }}
                                         @endif
+                                    </td>
+                                    <td class="align-middle fw-bold text-info">
+                                        {{ \Carbon\Carbon::parse($sabr->created_at)->format('Y/m/d') }}
                                     </td>
                                     @php
                                         // maps from bucket-name to colors/icons

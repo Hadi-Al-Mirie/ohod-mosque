@@ -25,10 +25,8 @@ class CircleController extends Controller
     {
         $request->validate([
             'search_value' => 'nullable|string|min:2|max:100',
-            'order_by' => 'nullable|string|in:points,recitations,sabrs,attendance',
         ]);
         $searchValue = $request->get('search_value');
-        $orderBy = $request->get('order_by');
         $currentCourse = Course::latest()->first();
         if (is_null($currentCourse)) {
             return redirect()
@@ -38,37 +36,14 @@ class CircleController extends Controller
         }
         $circlesQuery = Circle::withCount('students')
             ->with(['teacher.user:id,name'])
-            ->withSum('students as points', 'cashed_points')
-            ->withCount('recitations', 'sabrs', 'attendances')
-            ->withCount([
-                'attendances as present_count' => function ($q) {
-                    $q->where('type_id', 1);
-                }
-            ]);
+            ->withSum('students as points', 'cashed_points');
         if ($searchValue) {
             $circlesQuery->where('name', 'like', "%{$searchValue}%");
         }
-        switch ($orderBy) {
-            case 'points':
-                $circlesQuery->orderBy('points', 'desc');
-                break;
-            case 'recitations':
-                $circlesQuery->orderBy('recitations_count', 'desc');
-                break;
-            case 'sabrs':
-                $circlesQuery->orderBy('sabrs_count', 'desc');
-                break;
-            case 'attendance':
-                $circlesQuery->orderByRaw(
-                    'CASE WHEN attendances_count = 0 THEN 0 ELSE present_count/attendances_count END desc'
-                );
-                break;
-            default:
-                $circlesQuery->orderBy('created_at', 'desc');
-        }
+        $circlesQuery->orderBy('points', 'desc');
         $circles = $circlesQuery->paginate(10);
         return view('dashboard.circles.index', compact('circles'))
-            ->with('order_by', $orderBy);
+            ->with('order_by');
     }
     public function create()
     {

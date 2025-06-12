@@ -12,19 +12,13 @@ return new class extends Migration {
     {
         Schema::create('mistakes_recordes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('mistake_id')
-                ->constrained()
-                ->cascadeOnDelete();
-            $table->foreignId('recitation_id')
-                ->nullable()
-                ->constrained()
-                ->cascadeOnDelete();
-            $table->foreignId('sabr_id')
-                ->nullable()
-                ->constrained('sabrs')
-                ->cascadeOnDelete();
+            $table->foreignId('mistake_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('recitation_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('sabr_id')->nullable()->constrained('sabrs')->cascadeOnDelete();
             $table->enum('type', ['recitation', 'sabr']);
-            $table->integer('quantity')->default(0);
+            $table->integer('page_number');
+            $table->integer('line_number');
+            $table->integer('word_number');
             $table->timestamps();
         });
     }

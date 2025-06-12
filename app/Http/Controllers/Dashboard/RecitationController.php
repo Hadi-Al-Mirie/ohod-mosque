@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Recitation;
-use App\Models\Student;
-use App\Models\Mistake;
-use App\Models\MistakesRecorde;
 use App\Models\ResultSetting;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -22,7 +21,6 @@ class RecitationController extends Controller
     public function index(Request $request)
     {
         try {
-            // 1) Validate inputs
             $request->validate([
                 'search_field' => 'nullable|string|in:student,teacher,result',
                 'search_value' => 'nullable|string|min:1|max:255',
@@ -38,10 +36,11 @@ class RecitationController extends Controller
                 ->orderBy('min_res')
                 ->get();
 
+            // Subquery: raw_score = 100 - sum(penalty per mistake record)
             $scoreSub = DB::table('recitations')
                 ->select([
                     'recitations.id',
-                    DB::raw('100 - COALESCE(SUM(lm.value * mr.quantity), 0) AS raw_score'),
+                    DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'),
                 ])
                 ->leftJoin('mistakes_recordes AS mr', 'mr.recitation_id', 'recitations.id')
                 ->leftJoin('level_mistakes AS lm', function ($join) {
@@ -62,8 +61,8 @@ class RecitationController extends Controller
                 })
                 ->addSelect('rs.name AS result_name')
                 ->with(['student.user', 'creator']);
-            $field = $request->search_field;
-            if ($field) {
+
+            if ($field = $request->search_field) {
                 $value = $request->search_value;
                 if ($value) {
                     match ($field) {
@@ -82,16 +81,20 @@ class RecitationController extends Controller
                     };
                 }
             }
+
             $recitations = $base
                 ->orderBy('recitations.created_at', 'desc')
                 ->paginate(10)
                 ->withQueryString();
+
             return view('dashboard.recitations.index', compact('recitations', 'settings'));
+
         } catch (ValidationException $ve) {
             return redirect()->back()
                 ->withInput()
                 ->withErrors($ve->errors())
                 ->with('danger', 'تأكد من صحة بيانات البحث.');
+
         } catch (Exception $e) {
             Log::error('Error listing recitations', ['error' => $e->getMessage()]);
             return redirect()->back()
@@ -99,83 +102,53 @@ class RecitationController extends Controller
         }
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        try {
-            $students = Student::with('user')->get();
-            $mistakes = Mistake::where('type', 'recitation')->get();
-            return view('dashboard.recitations.add', compact('students', 'mistakes'));
-        } catch (Exception $e) {
-            Log::error('Error opening recitation form', ['error' => $e->getMessage()]);
-            return redirect()->back()
-                ->with('danger', 'تعذّر فتح نموذج تسجيل التسميع.');
-        }
-    }
 
-    /**
-     * Store a newly created recitation in storage.
-     */
-    public function store(Request $request)
+    public function toggleFinal(Recitation $recitation)
     {
         try {
-            $data = $request->validate([
-                'student_id' => 'required|exists:students,id',
-                'page' => 'required|integer|min:1|max:604',
-                'mistakes' => 'required|array',
-                'mistakes.*' => 'required|integer|min:0',
-            ], [
-                'student_id.required' => 'اختيار الطالب مطلوب.',
-                'student_id.exists' => 'الطالب المحدد غير موجود.',
-                'page.required' => 'رقم الصفحة مطلوب.',
-                'page.integer' => 'رقم الصفحة يجب أن يكون عددًا.',
-                'page.min' => 'رقم الصفحة يجب أن يكون على الأقل 1.',
-                'page.max' => 'رقم الصفحة لا يمكن أن يتجاوز 604.',
-                'mistakes.required' => 'تسجيل الأخطاء مطلوب.',
-                'mistakes.*.integer' => 'عدد الأخطاء يجب أن يكون رقمًا صحيحًا.',
-                'mistakes.*.min' => 'عدد الأخطاء لا يمكن أن يكون سلبيًا.',
-            ]);
-            $resultName = DB::transaction(function () use ($data) {
-                $courseId = course_id();
-                $creatorId = auth()->id();
-                $student = Student::find($data['student_id']);
-                $rec = Recitation::create([
-                    'student_id' => $data['student_id'],
-                    'by_id' => $creatorId,
-                    'course_id' => $courseId,
-                    'page' => $data['page'],
-                    'level_id' => $student->level_id,
-                ]);
-                foreach (Mistake::where('type', 'recitation')->pluck('id') as $mid) {
-                    MistakesRecorde::create([
-                        'recitation_id' => $rec->id,
-                        'mistake_id' => $mid,
-                        'quantity' => $data['mistakes'][$mid] ?? 0,
-                        'type' => 'recitation',
-                    ]);
+            $studentId = $recitation->student_id;
+            $page = $recitation->page;
+            $activeCourseId = course_id();
+
+            if ($recitation->is_final) {
+                $recitation->is_final = false;
+                $message = 'تم السماح بإعادة تسجيل الصفحة.';
+            } else {
+                // Finalizing: ensure no other final in active course
+                $exists = Recitation::where('student_id', $studentId)
+                    ->where('page', $page)
+                    ->where('course_id', $activeCourseId)
+                    ->where('is_final', true)
+                    ->exists();
+
+                if ($exists) {
+                    throw new AccessDeniedHttpException(
+                        'لا يمكن تأكيد التسجيل لأن الصفحة مُسجّلة نهائيًا بالفعل.'
+                    );
                 }
-                $res_name = $rec->calculateResult();
-                $student->update(['cashed_points' => $student->points]);
-                return $res_name;
-            });
+
+                $recitation->is_final = true;
+                $message = 'تم تأكيد التسجيل النهائي للصفحة.';
+            }
+
+            $recitation->save();
+
             return redirect()
                 ->route('admin.recitations.index')
-                ->with([
-                    'success' => 'تم تسجيل التسميع بنجاح.',
-                    'result_name' => $resultName,
-                ]);
-        } catch (ValidationException $ve) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors($ve->errors())
-                ->with('danger', 'يرجى تصحيح الأخطاء أدناه.');
+                ->with('success', $message);
+
+        } catch (AccessDeniedHttpException $e) {
+            return redirect()
+                ->back()
+                ->with('danger', $e->getMessage());
         } catch (Exception $e) {
-            Log::error('Error storing recitation', ['error' => $e->getMessage()]);
-            return redirect()->back()
-                ->withInput()
-                ->with('danger', 'حدث خطأ أثناء تسجيل التسميع.');
+            Log::error('Error toggling recitation final', [
+                'id' => $recitation->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()
+                ->back()
+                ->with('danger', 'حدث خطأ أثناء تعديل حالة التسجيل.');
         }
     }
 
@@ -185,10 +158,21 @@ class RecitationController extends Controller
     public function show(Recitation $recitation)
     {
         try {
-            $recitation->load(['student.user', 'creator', 'course', 'recitationMistakes.mistake']);
+            $recitation->load([
+                'student.user',
+                'creator',
+                'course',
+                'recitationMistakes.mistake'
+            ]);
+
             return view('dashboard.recitations.show', compact('recitation'));
+
         } catch (Exception $e) {
-            Log::error('Error showing recitation', ['id' => $recitation->id, 'error' => $e->getMessage()]);
+            Log::error('Error showing recitation', [
+                'id' => $recitation->id,
+                'error' => $e->getMessage()
+            ]);
+
             return redirect()->back()
                 ->with('danger', 'تعذّر عرض تفاصيل التسميع.');
         }
@@ -200,13 +184,23 @@ class RecitationController extends Controller
     public function destroy(Recitation $recitation)
     {
         try {
-            $student = Student::find($recitation->student_id);
+            $student = Student::findOrFail($recitation->student_id);
             $recitation->delete();
-            $student->update(['cashed_points' => $student->points]);
+
+            // Recalculate and cache the student's points
+            $student->update([
+                'cashed_points' => $student->points
+            ]);
+
             return redirect()->route('admin.recitations.index')
                 ->with('success', 'تم حذف التسميع بنجاح.');
+
         } catch (Exception $e) {
-            Log::error('Error deleting recitation', ['id' => $recitation->id, 'error' => $e->getMessage()]);
+            Log::error('Error deleting recitation', [
+                'id' => $recitation->id,
+                'error' => $e->getMessage()
+            ]);
+
             return redirect()->back()
                 ->with('danger', 'حدث خطأ أثناء حذف التسميع.');
         }

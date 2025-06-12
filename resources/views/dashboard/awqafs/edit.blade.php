@@ -1,11 +1,11 @@
 @extends('dashboard.layouts.app')
 
-@section('title', 'تعديل سبر الوقف')
+@section('title', 'تعديل سبر الأوقاف')
 @section('content')
     <div class="container mt-5">
         @include('dashboard.layouts.alert')
 
-        <h1 class="h3 mb-4 fw-bold text-center">تعديل سبر الوقف</h1>
+        <h1 class="h3 mb-4 fw-bold text-center">تعديل سبر الأوقاف</h1>
 
         <div class="card shadow-sm">
             <div class="card-body">
@@ -46,7 +46,7 @@
 
                     {{-- Result (only for retry & success) --}}
                     <div class="mb-4" id="resultField" style="display:none;">
-                        <label for="result" class="form-label fw-bold">النتيجة (0–100)</label>
+                        <label for="result" class="form-label fw-bold">النتيجة (0-100)</label>
                         <input type="number" name="result" id="result"
                             class="form-control @error('result') is-invalid @enderror"
                             value="{{ old('result', $awqaf->result) }}" step="any" min="0" max="100">

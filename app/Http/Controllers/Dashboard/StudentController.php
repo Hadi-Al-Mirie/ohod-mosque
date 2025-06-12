@@ -32,11 +32,13 @@ class StudentController extends Controller
             // 1) Validate
             $request->validate([
                 'search_value' => 'nullable|string|min:2|max:100',
-                'order_by' => 'nullable|string|in:points,attendance,sabrs,recitations',
+                'order_by' => 'string|in:points,attendance,sabrs,recitations',
+                'circle_id' => 'nullable|exists:circles,id',
             ]);
 
             $searchValue = $request->get('search_value');
             $orderBy = $request->get('order_by', 'points');
+            $circleId = $request->get('circle_id');
 
             // 2) Active course
             $active = Course::where('is_active', true)->firstOrFail();
@@ -45,23 +47,22 @@ class StudentController extends Controller
             //
             // 3a) raw‐score per recitation
             //
+            // 3a) raw‐score per recitation
             $rawRecSub = DB::table('recitations')
                 ->where('course_id', $cid)
                 ->leftJoin('mistakes_recordes as mr', 'mr.recitation_id', 'recitations.id')
-                ->leftJoin('level_mistakes    as lm', function ($j) {
+                ->leftJoin('level_mistakes as lm', function ($j) {
                     $j->on('lm.mistake_id', 'mr.mistake_id')
                         ->on('lm.level_id', 'recitations.level_id');
                 })
                 ->select([
                     'recitations.id',
                     'recitations.student_id',
-                    DB::raw('100 - COALESCE(SUM(lm.value * mr.quantity),0) AS raw_score')
+                    DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'),
                 ])
                 ->groupBy('recitations.id', 'recitations.student_id');
 
-            //
             // 3b) bucket & sum recitation points
-            //
             $recPointsSub = DB::query()
                 ->fromSub($rawRecSub, 'raw_rec')
                 ->join('result_settings as rs', function ($j) {
@@ -71,30 +72,26 @@ class StudentController extends Controller
                 })
                 ->select([
                     'raw_rec.student_id',
-                    DB::raw('SUM(rs.points) as rec_points')
+                    DB::raw('SUM(rs.points) AS rec_points'),
                 ])
                 ->groupBy('raw_rec.student_id');
 
-            //
             // 4a) raw‐score per sabr
-            //
             $rawSabrSub = DB::table('sabrs')
                 ->where('course_id', $cid)
                 ->leftJoin('mistakes_recordes as mr', 'mr.sabr_id', 'sabrs.id')
-                ->leftJoin('level_mistakes    as lm', function ($j) {
+                ->leftJoin('level_mistakes as lm', function ($j) {
                     $j->on('lm.mistake_id', 'mr.mistake_id')
                         ->on('lm.level_id', 'sabrs.level_id');
                 })
                 ->select([
                     'sabrs.id',
                     'sabrs.student_id',
-                    DB::raw('100 - COALESCE(SUM(lm.value * mr.quantity),0) AS raw_score')
+                    DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'),
                 ])
                 ->groupBy('sabrs.id', 'sabrs.student_id');
 
-            //
             // 4b) bucket & sum sabr points
-            //
             $sabrPointsSub = DB::query()
                 ->fromSub($rawSabrSub, 'raw_sabr')
                 ->join('result_settings as rs', function ($j) {
@@ -104,9 +101,10 @@ class StudentController extends Controller
                 })
                 ->select([
                     'raw_sabr.student_id',
-                    DB::raw('SUM(rs.points) as sabr_points')
+                    DB::raw('SUM(rs.points) AS sabr_points'),
                 ])
                 ->groupBy('raw_sabr.student_id');
+
 
             //
             // 5) main student query
@@ -147,16 +145,24 @@ class StudentController extends Controller
                     END),0)');
                 }, 'attendance_points')
 
-                ->with(['user:id,name', 'circle:id,name']);
+                ->with(['user:id,name', 'circle:id,name'])
 
-            // 6) optional search
-            if ($searchValue) {
-                $students->whereHas(
-                    'user',
+                ->when(
+                    $searchValue,
                     fn($q) =>
-                    $q->where('name', 'like', "%{$searchValue}%")
+                    $q->whereHas(
+                        'user',
+                        fn($q2) =>
+                        $q2->where('name', 'like', "%{$searchValue}%")
+                    )
+                )
+
+                // 6b) optional circle filter
+                ->when(
+                    $circleId,
+                    fn($q) =>
+                    $q->where('circle_id', $circleId)
                 );
-            }
 
             match ($orderBy) {
                 'attendance' => $students->orderByDesc('attendance_points'),
@@ -169,10 +175,11 @@ class StudentController extends Controller
             $students = $students
                 ->paginate(10)
                 ->withQueryString();
-
-            return view('dashboard.students.index', compact('students', 'orderBy'));
+            $circles = Circle::orderBy('name')->pluck('name', 'id');
+            return view('dashboard.students.index', compact('students', 'orderBy', 'circles'));
 
         } catch (ValidationException $ve) {
+            \Log::error('StudentController@index error', ['e' => $ve->getMessage()]);
             return back()
                 ->withInput()
                 ->withErrors($ve->errors())
@@ -301,10 +308,12 @@ class StudentController extends Controller
                 'recitationsCount' => $student->recitations()->where('course_id', $course->id)->count(),
                 'recitationAvg' => round($student->rawScores('recitation')->avg(), 2),
                 'recitationResultCounts' => $student->resultCounts('recitation'),
+                'recitationsPoints' => $student->recitationPoints(),
 
                 'sabrCount' => $student->sabrs()->where('course_id', $course->id)->count(),
                 'sabrAvg' => round($student->rawScores('sabr')->avg(), 2),
                 'sabrResultCounts' => $student->resultCounts('sabr'),
+                'sabrPoints' => $student->sabrPoints(),
 
                 // attendance & notes
                 'attendanceStats' => $student->attendanceStats(),
