@@ -55,7 +55,6 @@ class LoginController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'type' => $type,
                     'circle_id' => $circle_id,
                 ],
                 'token' => $token,
