@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'courseExists' => \App\Http\Middleware\EnsureCourseExists::class,
             'teacherOrHelper' => \App\Http\Middleware\EnsureTeacherOrHelper::class,
             'teacher' => \App\Http\Middleware\EnsureTeacher::class,
+            'noActiveCourse' => \App\Http\Middleware\EnsureNoActiveCourse::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -4,10 +4,19 @@ use Illuminate\Support\Collection;
 use App\Models\ResultSetting;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Model;
+
+if (!function_exists('active_exist')) {
+    function active_exist()
+    {
+        $c = Course::where('is_active', true)->first();
+        return $c ? $c->id : null;
+    }
+}
 if (!function_exists('course_id')) {
     function course_id()
     {
         $c = Course::where('is_active', true)->first();
+
         $ci = $c->id;
         return $ci;
     }

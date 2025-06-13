@@ -17,22 +17,10 @@ class EnsureTeacherOrHelper
     {
         $user = Auth::user();
 
-        if ($user->role_id === 2) {
+        if ($user->role_id === 2 || $user->role_id === 3) {
             // real teacher – OK
             return $next($request);
         }
-
-        if ($user->role_id === 3) {
-            // helper teacher – must have permission 2 (“recitation”) or permission 1 (“attendance”) etc.
-            if (
-                !$user->helperTeacher
-                || !$user->helperTeacher->permissions->pluck('id')->contains(2)
-            ) {
-                throw new AccessDeniedHttpException('ليس لديك الصلاحية للوصول.');
-            }
-            return $next($request);
-        }
-
         throw new AccessDeniedHttpException('غير مصرح لك.');
     }
 }

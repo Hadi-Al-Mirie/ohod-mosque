@@ -61,10 +61,6 @@ class TeacherController extends Controller
                 ->select('id', 'name')
                 ->get();
 
-            if ($circles->isEmpty()) {
-                return redirect()->back()
-                    ->with('danger', 'يجب عليك إنشاء حلقة أولاً.');
-            }
 
             return view('dashboard.teachers.add', compact('circles'));
         } catch (Exception $e) {

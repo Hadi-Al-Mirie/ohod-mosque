@@ -3,25 +3,23 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use App\Models\Course;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use App\Models\Course;
 
 class EnsureCourseExists
 {
     /**
      * Handle an incoming request.
      *
+     * @param  \Illuminate\Http\Request    $request
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next)
     {
-        $currentCourse = Course::where('is_active', true)->first();
-        if (is_null($currentCourse)) {
+        if (is_null(active_exist())) {
             return redirect()
-                ->back()
-                ->withInput()
-                ->with('danger', 'أنشئ دورة ثم أعد المحاولة لاحقا .');
+                ->route('admin.dashboard')
+                ->with('danger', 'أنشئ دورة ثم أعد المحاولة لاحقاً.');
         }
 
         return $next($request);

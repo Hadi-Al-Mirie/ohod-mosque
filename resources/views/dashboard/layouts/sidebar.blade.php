@@ -21,15 +21,22 @@
                         <span class="nav-link-text">الرئيسية</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.courses.*') && !request()->routeIs('admin.courses.index') ? 'active' : '' }}"
-                        href="{{ route('admin.courses.show', ['course' => course_id()]) }}">
-                        <span class="nav-icon">
-                            <i class="fas fa-graduation-cap"></i>
-                        </span>
-                        <span class="nav-link-text">الدورة الحالية</span>
-                    </a>
-                </li>
+                @php
+                    $activeId = active_exist();
+                @endphp
+
+                @if ($activeId)
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.courses.show') ? 'active' : '' }}"
+                            href="{{ route('admin.courses.show', ['course' => $activeId]) }}">
+                            <span class="nav-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </span>
+                            <span class="nav-link-text">الدورة الحالية</span>
+                        </a>
+                    </li>
+                @endif
+
 
 
                 <li class="nav-item">

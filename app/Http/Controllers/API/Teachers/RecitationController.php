@@ -112,8 +112,8 @@ class RecitationController extends Controller
                 'mistakes' => ['required', 'array', 'min:1'],
                 'mistakes.*.mistake_id' => ['required', 'integer', 'exists:mistakes,id'],
                 'mistakes.*.page_number' => ['required', 'integer', 'min:1', 'max:604'],
-                'mistakes.*.line_number' => ['required', 'integer', 'min:1'],
-                'mistakes.*.word_number' => ['required', 'integer', 'min:1'],
+                'mistakes.*.line_number' => ['required', 'integer', 'min:0', 'max:14'],
+                'mistakes.*.word_number' => ['required', 'integer', 'min:0', 'max:25'],
             ]);
 
             $student = Student::findOrFail($data['student_id']);

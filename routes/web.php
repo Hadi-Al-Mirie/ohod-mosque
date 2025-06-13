@@ -42,13 +42,12 @@ Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
-    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
-    Route::put('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
     Route::middleware('courseExists')->group(function () {
+        Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
         Route::resource('users', UserController::class);
         Route::resource('circles', CircleController::class);
-        Route::get('{student}/sabr-history', [SabrHistoryController::class, 'show'])
-            ->name('sabr.history');
+        Route::get('{student}/sabr-history', [SabrHistoryController::class, 'show'])->name('sabr.history');
         Route::patch(
             'recitations/{recitation}/toggle-final',
             [RecitationController::class, 'toggleFinal']
@@ -78,8 +77,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::resource('attendances', AttendanceController::class);
         Route::resource('sabrs', SabrController::class);
         Route::resource('recitations', RecitationController::class);
-        Route::get('old-course/{course}/show', [CourseController::class, 'show'])->name('oldcourse.show');
-        Route::resource('courses', CourseController::class);
         Route::get('notes/requests', [NoteController::class, 'requests'])->name('notes.requests');
         Route::patch('notes/{note}/approve', [NoteController::class, 'approve'])
             ->name('notes.approve');
@@ -87,75 +84,23 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             'notes' => 'note'
         ])->where(['note' => '^(?!requests$).+']);
     });
-    // in routes/dashboard.php (or web.php under admin group)
+    Route::get('old-course/{course}/show', [CourseController::class, 'show'])
+        ->name('oldcourse.show');
+    Route::get('courses', [CourseController::class, 'index'])
+        ->name('courses.index');
+    Route::get('courses/create', [CourseController::class, 'create'])
+        ->name('courses.create')
+        ->middleware('noActiveCourse');
+    Route::post('courses', [CourseController::class, 'store'])->name('courses.store')
+        ->middleware('noActiveCourse');
+    Route::middleware('courseExists')->group(function () {
+        Route::get('courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
+        Route::get('courses/{course}', [CourseController::class, 'show'])
+            ->name('courses.show');
+        Route::put('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+        Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+    });
     Route::resource('awqafs', AwqafController::class);
-
     Route::post('/logout', [LoginController::class, 'logout'])
         ->name('logout');
-});
-
-
-
-
-Route::get('/list-migrations', function () {
-    $migrations = [];
-    $migrationsPath = database_path('migrations');
-
-    $finder = new Finder();
-    $finder->in($migrationsPath)->files()->name('*.php');
-
-    foreach ($finder as $file) {
-        $content = $file->getContents();
-
-        // Find all schema creation blocks
-        preg_match_all('/Schema::create\(.*?}\);\n?/s', $content, $schemaMatches);
-        $schemas = $schemaMatches[0] ?? [];
-
-        if (!empty($schemas)) {
-            $migrations[] = [
-                'filename' => $file->getFilename(),
-                'schemas' => array_map('trim', $schemas)
-            ];
-        }
-    }
-
-    $output = '';
-    foreach ($migrations as $migration) {
-        $output .= "";
-        foreach ($migration['schemas'] as $schema) {
-            $output .= $schema . "\n";
-        }
-    }
-    return "<pre>" . ($output ?: "No migrations found") . "</pre>";
-});
-
-
-Route::get('/list-models', function () {
-    $modelsContent = [];
-    $modelsPath = app_path('Models');
-
-    $finder = new Finder();
-    $finder->in($modelsPath)->files()->name('*.php');
-
-    foreach ($finder as $file) {
-        $content = $file->getContents();
-
-        // Extract class declaration and body
-        if (preg_match('/class\s+.*/s', $content, $matches)) {
-            $classContent = $matches[0];
-
-            // Verify the class is an Eloquent model
-            $relativePath = $file->getRelativePathname();
-            $className = str_replace(['.php', '/'], ['', '\\'], $relativePath);
-            $fullClassName = 'App\\Models\\' . $className;
-
-            if (class_exists($fullClassName) && is_subclass_of($fullClassName, Model::class)) {
-                $modelsContent[] = $classContent;
-            }
-        }
-    }
-
-    $output = implode("\n\n", $modelsContent);
-
-    return "<pre>" . ($output ?: "No models found") . "</pre>";
 });
