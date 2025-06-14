@@ -9,27 +9,84 @@
             أرشيف الملاحظات
         </h1>
 
-        <!-- Search and Actions Section -->
+        <!-- Filters & Add New -->
         <div class="mb-4">
-            <div class="row g-3">
-                <div class="col-12 col-lg-8">
-                    <form method="GET" action="{{ route('admin.notes.index') }}">
-                        <div class="input-group">
-                            <input type="text" name="search" class="form-control search-input rounded-start"
-                                placeholder="🔍 ابحث بالاسم أو العنوان" value="{{ request('search') }}">
-                            <button class="btn btn-primary hover-scale" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
+            <div class="row g-3 align-items-center">
+                {{-- Filter button on the left --}}
+                <div class="col-auto">
+                    <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-2"></i> خيارات البحث
+                    </button>
                 </div>
-                <div class="col-12 col-lg-4 text-lg-end">
+
+                {{-- Add‑note button on the right --}}
+                <div class="col-auto ms-auto">
                     <a href="{{ route('admin.notes.create') }}" class="btn btn-success hover-scale">
-                        <i class="fas fa-eye me-2"></i> تسجيل ملاحظة
+                        <i class="fas fa-plus me-2"></i> إضافة ملاحظة جديدة
                     </a>
                 </div>
             </div>
         </div>
+
+        {{-- Filter Modal --}}
+        <div class="modal fade" id="filterModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title w-100 text-center">
+                            <i class="fas fa-filter me-2"></i> فلاتر البحث
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="GET" action="{{ route('admin.notes.index') }}">
+                        <div class="modal-body">
+                            {{-- Student Name --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم الطالب</label>
+                                <input type="text" name="student_name" value="{{ request('student_name') }}"
+                                    class="form-control" placeholder="🔍 اسم الطالب">
+                            </div>
+
+                            {{-- Teacher Name --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم الأستاذ</label>
+                                <input type="text" name="teacher_name" value="{{ request('teacher_name') }}"
+                                    class="form-control" placeholder="🔍 اسم الأستاذ">
+                            </div>
+
+                            {{-- Type --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">النوع</label>
+                                <select name="type" class="form-select">
+                                    <option value="">— اختر النوع —</option>
+                                    @foreach ($types as $key => $label)
+                                        <option value="{{ $key }}" @selected(request('type') === $key)>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Date --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التاريخ</label>
+                                <input type="date" name="date" value="{{ request('date') }}" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="modal-footer d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> تطبيق
+                            </button>
+                            <a href="{{ route('admin.notes.index') }}" class="btn btn-danger">
+                                <i class="fas fa-times me-1"></i> مسح الفلاتر
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Notes Table -->
         <div class="card shadow-lg border-0">

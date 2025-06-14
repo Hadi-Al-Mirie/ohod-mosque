@@ -10,19 +10,7 @@
             <p class="text-muted">قم بتعريف الدورة الجديدة مع تحديد مواعيدها وأيام العمل</p>
         </div>
 
-        <!-- Error Alert -->
-        @if ($errors->any())
-            <div class="alert alert-danger d-flex align-items-start">
-                <i class="fas fa-exclamation-triangle me-3 mt-1"></i>
-                <div class="flex-fill">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-        @endif
+        @include('dashboard.layouts.alert')
 
         <!-- Form Card -->
         <div class="card shadow-sm border-primary mb-5">
@@ -81,15 +69,15 @@
                                 <div class="row g-3">
                                     @php
                                         $days = [
-                                            0 => 'السبت',
-                                            1 => 'الأحد',
-                                            2 => 'الإثنين',
-                                            3 => 'الثلاثاء',
-                                            4 => 'الأربعاء',
-                                            5 => 'الخميس',
-                                            6 => 'الجمعة',
+                                            6 => 'السبت',
+                                            0 => 'الأحد',
+                                            1 => 'الإثنين',
+                                            2 => 'الثلاثاء',
+                                            3 => 'الأربعاء',
+                                            4 => 'الخميس',
+                                            5 => 'الجمعة',
                                         ];
-                                        $oldDays = old('working_days', []);
+                                        $selectedDays = old('working_days', []);
                                     @endphp
 
                                     @foreach ($days as $key => $day)
@@ -101,7 +89,7 @@
                                                 </label>
                                                 <input class="form-check-input m-0" type="checkbox" name="working_days[]"
                                                     value="{{ $key }}" id="day{{ $key }}"
-                                                    {{ in_array($key, $oldDays) ? 'checked' : '' }}>
+                                                    {{ in_array($key, $selectedDays) ? 'checked' : '' }}>
                                             </div>
                                         </div>
                                     @endforeach

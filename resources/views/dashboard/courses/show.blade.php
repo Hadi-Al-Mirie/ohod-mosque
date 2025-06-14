@@ -4,6 +4,7 @@
 
 @section('content')
     <div class="container mt-5" dir="rtl">
+        @include('dashboard.layouts.alert')
         <div class="container-fluid mb-5">
             <h1 class="mb-5 text-center fw-bold text-primary">
                 <i class="fas fa-chart-line me-2"></i> إحصائيات الدورة
@@ -24,16 +25,24 @@
             <div class="col-md-4">
                 <div class="card shadow-sm border-success h-100">
                     <div class="card-header bg-primary text-white text-center">
-                        <i class="fas fa-calendar-check me-2"></i> مؤشرات الحضور
+                        <i class="fas fa-calendar-check me-2"></i> الحضور
                     </div>
                     <div class="card-body scrollable-card-body">
                         @foreach ($tableRows as $row)
-                            <div class="metric-item mb-3 d-flex justify-content-between">
-                                <span class="fw-bold">{{ $row['circle'] }}</span>
-                                <div class="text-end">
-                                    <div class="small text-muted">نقاط الحضور: {{ $row['att_points'] }}</div>
-                                    {{-- <div class="badge bg-primary rounded-pill">{{ $row['att_rate'] }}%</div> --}}
+                            <div class="metric-item mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold text-dark">{{ $row['circle'] }}</span>
+                                        <div class="text-muted small mt-1">
+                                            نسبة الحضور
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="small text-muted">نقاط الحضور: {{ $row['att_points'] }}</div>
+                                        <div class="badge bg-primary rounded-pill">{{ $row['att_rate'] }}%</div>
+                                    </div>
                                 </div>
+                                <hr class="my-2">
                             </div>
                         @endforeach
                     </div>
@@ -46,7 +55,7 @@
                 <div class="card shadow-sm border-success h-100">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0 text-white text-center">
-                            <i class="fas fa-book-quran me-2"></i> مؤشرات السبر
+                            <i class="fas fa-book-quran me-2"></i> السبر
                         </h5>
                     </div>
                     <div class="card-body scrollable-card-body">
@@ -82,7 +91,7 @@
                 <div class="card shadow-sm border-success h-100">
                     <div class="card-header bg-warning text-dark">
                         <h5 class="mb-0 text-white text-center">
-                            <i class="fas fa-microphone-lines me-2"></i> مؤشرات التسميع
+                            <i class="fas fa-microphone-lines me-2"></i> التسميع
                         </h5>
                     </div>
                     <div class="card-body scrollable-card-body">
@@ -151,20 +160,26 @@
                                 <td class="text-center">{{ $row['circle'] }}</td>
                                 <td class="text-center">{{ $row['students'] }}</td>
                                 <td class="text-center">
-                                    <span class="badge bg-success">{{ $row['sabr_count'] }}</span>
+                                    <span class="badge bg-success">العدد : {{ $row['sabr_count'] }}</span>
                                     <div class="text-muted small">المعدل: {{ $row['sabr_avg'] }}</div>
+                                    <div class="text-muted small">النقاط: {{ $row['sabr_points'] }}</div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-warning">{{ $row['rec_count'] }}</span>
+                                    <span class="badge bg-warning">العدد : {{ $row['rec_count'] }}</span>
                                     <div class="text-muted small">المعدل: {{ $row['rec_avg'] }}</div>
+                                    <div class="text-muted small">النقاط: {{ $row['recitation_points'] }}</div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-primary">{{ $row['att_points'] }}</span>
-                                    {{-- <div class="text-muted small">النسبة: {{ $row['att_rate'] }}%</div> --}}
+                                    <span class="badge bg-primary">النقاط : {{ $row['att_points'] }}</span>
+                                    <div class="text-muted small">المعدل: {{ $row['att_rate'] }}%</div>
+                                    <div class="text-muted small">حضور: {{ $row['presentCount'] }}</div>
+                                    <div class="text-muted small">غياب: {{ $row['absentCount'] }}</div>
                                 </td>
 
                                 <td class="text-center">
-                                    <span class="badge bg-danger">{{ $row['notes_count'] }}</span>
+                                    <span class="badge bg-primary">العدد : {{ $row['notes_count'] }}</span>
+                                    <div class="text-muted small">إيجابية: {{ $row['positive_notes'] }}</div>
+                                    <div class="text-muted small">سلبية: {{ $row['negative_notes'] }}</div>
                                     <div class="text-muted small">النقاط: {{ $row['net_notes_points'] }}</div>
                                 </td>
                                 <td class="text-center fw-bold text-danger">{{ $row['perf_score'] }}</td>

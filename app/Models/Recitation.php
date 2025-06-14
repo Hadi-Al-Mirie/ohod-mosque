@@ -56,11 +56,16 @@ class Recitation extends Model
             ->pluck('level_mistakes.value', 'mistakes.id');
 
         // each record now counts as one occurrence
-        $penalty = $this->recitationMistakes
-            ->sum(fn($r) => $misValues->get($r->mistake_id, 0));
+        $penalty = $this->recitationMistakes()
+            ->get()             // ← force a Collection
+            ->sum(
+                fn($r) =>     // ← now Collection::sum accepts the callback
+                $misValues->get($r->mistake_id, 0)
+            );
 
         return max(0, min(100, 100 - $penalty));
     }
+
 
     public function calculateResult(): string
     {

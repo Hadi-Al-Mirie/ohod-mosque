@@ -12,21 +12,7 @@
             </h1>
             <p class="text-muted">قم بتعديل بيانات الدورة وتحديث أيام الدوام</p>
         </div>
-
-        <!-- Error Alert -->
-        @if ($errors->any())
-            <div class="alert alert-danger d-flex align-items-start mb-4">
-                <i class="fas fa-exclamation-triangle me-3 mt-1"></i>
-                <div class="flex-fill">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-        @endif
-
+        @include('dashboard.layouts.alert')
         <!-- Form Card -->
         <div class="card shadow-sm border-primary mb-5">
             <div class="card-header bg-primary text-white text-center">
@@ -78,31 +64,33 @@
                         </div>
 
                         <!-- Working Days -->
-                        <div class="col-12">
+                        <div class="col-12 mb-3">
                             <div class="bg-light-gray p-3 mt-3">
-                                <h5 class="fw-bold text-black mb-3 text-center">
-                                    <i class="fas fa-calendar-check me-2"></i> أيام الدراسة
-                                </h5>
+                                <h4 class="fw-bold text-black mb-5 text-center">
+                                    <i class="fas fa-calendar-check me-2"></i> أيام الدوام
+                                </h4>
                                 <div class="row g-3">
                                     @php
+                                        // Carbon: 0=Sunday, 1=Monday, … 6=Saturday
                                         $days = [
-                                            0 => 'السبت',
-                                            1 => 'الأحد',
-                                            2 => 'الإثنين',
-                                            3 => 'الثلاثاء',
-                                            4 => 'الأربعاء',
-                                            5 => 'الخميس',
-                                            6 => 'الجمعة',
+                                            6 => 'السبت',
+                                            0 => 'الأحد',
+                                            1 => 'الإثنين',
+                                            2 => 'الثلاثاء',
+                                            3 => 'الأربعاء',
+                                            4 => 'الخميس',
+                                            5 => 'الجمعة',
                                         ];
-                                        $oldInput = old('working_days');
+                                        // 1) Always grab old input as array (or empty array)
+                                        $oldInput = old('working_days', []);
 
-                                        // 2) Get the model value (should be array thanks to $casts)
+                                        // 2) Model value (casts to array on the Course model)
                                         $modelDays = is_array($course->working_days)
                                             ? $course->working_days
                                             : json_decode($course->working_days, true) ?? [];
 
-                                        // 3) Final selection: prefer old input, fall back to model, else empty array
-                                        $selectedDays = is_array($oldInput) ? $oldInput : $modelDays;
+                                        // 3) Final selection: prefer old input if any, else model
+                                        $selectedDays = count($oldInput) ? $oldInput : $modelDays;
                                     @endphp
 
                                     @foreach ($days as $key => $day)
@@ -115,7 +103,7 @@
                                                 <input class="form-check-input m-0" type="checkbox" name="working_days[]"
                                                     value="{{ $key }}" id="day{{ $key }}"
                                                     {{-- safe cast to array just in case --}}
-                                                    {{ in_array($key, (array) $selectedDays) ? 'checked' : '' }}>
+                                                    {{ in_array($key, $selectedDays) ? 'checked' : '' }}>
 
                                             </div>
                                         </div>
@@ -125,6 +113,23 @@
                                     <div class="text-danger small mt-2">{{ $message }}</div>
                                 @enderror
                             </div>
+                        </div>
+
+                        <!-- Deactivate Course -->
+                        <div class="col-12 bg-white rounded-4 shadow-sm mt-5 mb-5">
+                            <div class="form-check mt-4 mb-4">
+                                <!-- ensure a value is always submitted -->
+                                <input type="hidden" name="deactivate" value="0">
+                                <input class="form-check-input ms-3 p-3 mb-4" type="checkbox" name="deactivate"
+                                    id="deactivate" value="1"
+                                    {{ old('deactivate', $course->is_active ? 0 : 1) ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold me-3 fs-4" for="deactivate">
+                                    تعطيل الدورة
+                                </label>
+                            </div>
+                            @error('deactivate')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
                         <!-- Form Actions -->
                         <div class="col-12 mt-5">

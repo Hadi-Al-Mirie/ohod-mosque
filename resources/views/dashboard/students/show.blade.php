@@ -34,8 +34,8 @@
                                 </div>
 
                                 <div class="info-item bg-light-gray mb-4 p-3 rounded-3 shadow-sm print-name">
-                                    <i class="fas fa-user-tag me-2 text-standout"></i>
-                                    <strong>الاسم:</strong> {{ $student->user->name ?? 'غير محدد' }}
+                                    <i id="userIcon" class="fas fa-user-tag me-2 text-standout"></i>
+                                    <strong>الاسم : </strong> {{ $student->user->name ?? 'غير محدد' }}
                                 </div>
 
                                 <div class="info-item bg-light-gray mb-4 p-3 rounded-3 shadow-sm">
@@ -103,10 +103,10 @@
                         </div>
 
                         <!-- QR Code Section -->
-                        <div class="text-center mt-5 print-qr">
+                        <div class="text-center mt-5 ">
                             <div class="qr-container bg-white p-4 rounded-4 shadow-lg d-inline-block">
                                 <img src="data:image/png;base64,{{ base64_encode($qrcode) }}" alt="QR Code"
-                                    class="img-fluid qr-border" style="max-width: 220px; border: 2px solid #e7e9ed">
+                                    class="print-qr" style="max-width: 220px; border: 2px solid #e7e9ed">
                                 <p class="text-black mt-2 mb-0 fw-semibold">
                                     <i class="fas fa-qrcode me-2 text-standout"></i> امسح الكود لتسجيل الدخول
                                 </p>
@@ -188,13 +188,12 @@
                             </div>
                             <div class="col-12 d-flex justify-content-center mt-4">
                                 <a href="{{ route('admin.recitations.index', [
-                                    'search_value' => $student->user->name,
-                                    'search_field' => 'student',
+                                    'student_name' => $student->user->name,
                                 ]) }}"
-                                    class="btn btn-secondary mt-4 w-75 fs-5 bg-light-gray text-black" style="">
-                                    عرض التفاصيل
-                                    <i class="fas fa-arrow-left ms-2"></i>
+                                    class="btn btn-secondary mt-4 w-100 fs-5 bg-light-gray text-black">
+                                    عرض التفاصيل <i class="fas fa-arrow-left ms-2"></i>
                                 </a>
+
                             </div>
                         </div>
                     </div>
@@ -301,7 +300,7 @@
                                     class="info-item bg-light-gray bg-light-gray p-3 rounded-3 shadow-sm flex-grow-1 mb-3">
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="fas fa-clock me-3 fs-4 text-primary"></i>
-                                        <h5 class="mb-0 fw-semibold  me-2"> عدد أيام الدوام : </h5>
+                                        <h5 class="mb-0 fw-semibold  me-2"> عدد أيام الدوام الكلية للدورة: </h5>
                                     </div>
                                     <p class="fs-3 fw-bold text-dark mb-0 me-4">{{ $numberOfWorkingDays }}</p>
                                 </div>
@@ -326,7 +325,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('admin.attendances.index', ['search_value' => $student->user->name]) }}"
-                                    class="btn btn-secondary mt-4 w-100">
+                                    class="btn btn-secondary mt-4 w-100 fs-5 bg-light-gray text-black">
                                     عرض التفاصيل <i class="fas fa-arrow-left ms-2"></i>
                                 </a>
                             </div>
@@ -379,7 +378,7 @@
                                 </div>
 
                                 <a href="{{ route('admin.notes.index', ['search' => $student->user->name]) }}"
-                                    class="btn btn-secondary mt-4 w-100">
+                                    class="btn btn-secondary mt-4 w-100 fs-5 bg-light-gray text-black">
                                     عرض التفاصيل <i class="fas fa-arrow-left ms-2"></i>
                                 </a>
                             </div>
@@ -482,14 +481,14 @@
 
         <div class="text-center mt-4">
             <a href="{{ route('admin.students.index') }}" class="btn btn-secondary hover-scale mt-5 mb-4 px-5 py-3 me-2">
-                <i class="fas fa-arrow-left me-2"></i> العودة للقائمة
+                <i class="fas fa-arrow-left me-2 ms-3"></i> العودة للقائمة
             </a>
             <a href="{{ route('admin.recitation.history', $student->id) }}"
-                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3">
+                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5 ms-4">
                 <i class="fas fa-book me-2"></i> عرض سجل التسميع
             </a>
             <a href="{{ route('admin.sabr.history', $student->id) }}"
-                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3">
+                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5">
                 <i class="fas fa-book me-2"></i> عرض سجل السبر
             </a>
         </div>
@@ -501,10 +500,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Reusable donut chart function
             function renderDonutChart(selector, rawValue, label, color) {
-                // Convert the incoming value to a float
-                const value = parseFloat(rawValue);
+                const container = document.querySelector(selector);
+                if (!container) return;
 
-                // Round both value and remaining to one decimal place
+                const value = parseFloat(rawValue);
                 const roundedValue = parseFloat(value.toFixed(1));
                 const roundedRemaining = parseFloat((100 - value).toFixed(1));
 
@@ -517,22 +516,15 @@
                         foreColor: '#373d3f',
                         rtl: true,
                         events: {
-                            // On hover, always show "roundedValue" in the donut center
-                            dataPointMouseEnter: function(event, chartContext, {
+                            dataPointMouseEnter(_, __, {
                                 seriesIndex
                             }) {
-                                const totalLabel = document.querySelector(
-                                    `${selector} .apexcharts-donut-total-label`);
-                                if (totalLabel) {
-                                    totalLabel.textContent = `${roundedValue}%`;
-                                }
+                                const totalLabel = container.querySelector('.apexcharts-donut-total-label');
+                                if (totalLabel) totalLabel.textContent = `${roundedValue}%`;
                             },
-                            dataPointMouseLeave: function() {
-                                const totalLabel = document.querySelector(
-                                    `${selector} .apexcharts-donut-total-label`);
-                                if (totalLabel) {
-                                    totalLabel.textContent = `${roundedValue}%`;
-                                }
+                            dataPointMouseLeave() {
+                                const totalLabel = container.querySelector('.apexcharts-donut-total-label');
+                                if (totalLabel) totalLabel.textContent = `${roundedValue}%`;
                             }
                         }
                     },
@@ -549,12 +541,11 @@
                                     show: true,
                                     total: {
                                         show: true,
-                                        label: label,
-                                        formatter: function() {
-                                            // Center label text, e.g. "8.4%"
+                                        label,
+                                        formatter() {
                                             return `${roundedValue}%`;
                                         },
-                                        color: color,
+                                        color,
                                         fontSize: '20px'
                                     }
                                 }
@@ -565,92 +556,164 @@
                         enabled: false,
                         fillSeriesColor: false,
                         y: {
-                            formatter: function(val) {
-                                // Also ensure tooltips show only one decimal place
-                                return ` ${val.toFixed(1)} % `;
-                            }
+                            formatter: val => ` ${val.toFixed(1)} % `
                         }
                     }
                 };
 
-                new ApexCharts(document.querySelector(selector), options).render();
+                new ApexCharts(container, options).render();
             }
 
-            @if ($recitationAvg >= 5)
+            @if (isset($recitationAvg) && $recitationAvg >= 5)
                 renderDonutChart(
                     "#recitation-chart",
-                    {{ number_format($recitationAvg, 2, '.', '') }},
+                    "{{ number_format($recitationAvg, 2, '.', '') }}",
                     "التسميع",
-                    '#049977'
+                    "#049977"
                 );
             @endif
 
-            @if ($sabrAvg >= 5)
+            @if (isset($sabrAvg) && $sabrAvg >= 5)
                 renderDonutChart(
                     "#sabr-chart",
-                    {{ number_format($sabrAvg, 2, '.', '') }},
+                    "{{ number_format($sabrAvg, 2, '.', '') }}",
                     "السبر",
-                    '#049977'
+                    "#049977"
                 );
             @endif
         });
 
         function copyHead(sourceDoc, targetDoc) {
-            // استنساخ روابط CSS و <style>
             sourceDoc.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
                 const clone = node.cloneNode(true);
-                if (clone.rel === 'stylesheet') clone.media =
-                    'all'; // يضمن تطبيقها في الطباعة :contentReference[oaicite:3]{index=3}
+                if (clone.rel === 'stylesheet') clone.media = 'all';
                 targetDoc.head.appendChild(clone);
             });
-            // استنساخ meta charset و viewport
             sourceDoc.querySelectorAll('meta[charset], meta[name="viewport"]').forEach(node => {
                 targetDoc.head.appendChild(node.cloneNode(true));
             });
         }
 
-        /**
-         * ينشئ مستند HTML جديد يحتوي فقط على العناصر المخصصة للطباعة
-         * ثم يستدعي window.print() بعد تحميل الأنماط والصورة.
-         */
+        // opens a print window with a styled student card
         function printSelectedInfo() {
-            const idHTML = document.querySelector('.print-id')?.outerHTML || '';
-            const nameHTML = document.querySelector('.print-name')?.outerHTML || '';
-            const phoneHTML = document.querySelector('.print-phone')?.outerHTML || '';
+            const qrElem = document.querySelector('.print-qr');
+            const nameElem = document.querySelector('.print-name');
+            const nameClone = nameElem?.cloneNode(true);
+
+            // remove the <i> with id="userIcon"
+            nameClone
+                ?.querySelectorAll('#userIcon')
+                .forEach(icon => icon.remove());
+
+            const nameHTML = nameClone ? nameClone.outerHTML : '';
             const qrHTML = document.querySelector('.print-qr')?.outerHTML || '';
 
-            // بناء محتوى الصفحة للطباعة
             const printContent = `
       <!DOCTYPE html>
       <html dir="rtl">
         <head>
-          <title>طباعة بيانات الطالب</title>
-          <!-- سيتم نسخ الأنماط والميتا هنا -->
+          <meta charset="utf-8">
+          <title>Student Card</title>
+          <style>
+            /* reset browser print margins */
+            @page { margin: 0 !important; }
+            body {
+              margin: 10mm !important;
+              font-family: 'Segoe UI', Tahoma, sans-serif;
+              background: #f7f9fc;
+              color: #333;
+            }
+
+            /* card container */
+            .card-print {
+              display: flex;
+              flex-direction: row-reverse;
+              align-items: center;
+              background: #ffffff;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+              padding: 16px;
+              gap: 24px;
+              max-width: 200mm;
+              margin: auto;
+            }
+
+            /* text side */
+            .card-print .text-block {
+              flex: 1;
+            }
+            .card-print .text-block .print-id,
+            .card-print .text-block .print-name {
+              display: block;
+              margin-bottom: 25px !important;
+              font-size: 18pt;
+              font-weight: 600;
+              padding-left: 8px;
+            }
+            .card-print .text-block .print-id{
+            margin-bottom: 75px !important;
+            }
+            .card-print .text-block .print-id span.label,
+            .card-print .text-block .print-name span.label {
+              color: #049977;
+              margin-right: 4px;
+              font-size: 16pt;
+            }
+
+            /* QR side */
+            .card-print .print-qr {
+              flex-shrink: 0;
+              text-align: center;
+            }
+            .card-print .print-qr .qr-container {
+              background: #fafafa;
+              padding: 12px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            }
+            .card-print .print-qr img {
+              max-width: 180px;
+              height: auto;
+              display: block;
+              margin: auto;
+            }
+            .card-print .print-qr p {
+              margin: 8px 0 0;
+              font-size: 12pt;
+              color: #555;
+            }
+
+            /* hide anything not explicitly printed */
+            .no-print, #basic-info { display: none !important; }
+            .print-name i { display: none !important; }
+          </style>
         </head>
         <body>
-          ${idHTML}
-          ${nameHTML}
-          ${phoneHTML}
-          ${qrHTML}
+          <div class="card-print">
+            <div class="text-block">
+              ${nameHTML.replace(
+                /<strong>([^<]+)<\/strong>\s*([^<]+)/,
+                `<span class="label">\$1</span>\$2`
+              )}
+            </div>
+            ${qrHTML}
+          </div>
         </body>
       </html>
     `;
 
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printContent);
-            printWindow.document.close();
+            const w = window.open('', '_blank');
+            if (!w) return;
+            w.document.write(printContent);
+            w.document.close();
+            copyHead(document, w.document);
 
-            // نسخ الأنماط والميتا بعد document.close()
-            copyHead(window.document, printWindow.document);
-
-            // انتظار تحميل المحتوى ثم الطباعة
-            printWindow.onload = () => {
-                // تأخير بسيط لضمان تطبيق CSS :contentReference[oaicite:4]{index=4}
+            w.onload = () => {
                 setTimeout(() => {
-                    printWindow.focus();
-                    printWindow.print();
-                    printWindow.onafterprint = () => printWindow.close();
-                }, 250);
+                    w.focus();
+                    w.print();
+                    w.onafterprint = () => w.close();
+                }, 200);
             };
         }
     </script>

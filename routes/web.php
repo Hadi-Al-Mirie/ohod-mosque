@@ -57,8 +57,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::resource('students', StudentController::class);
         Route::resource('teachers', TeacherController::class);
         Route::resource('helper-teachers', HelperTeacherController::class);
-        Route::get('student/{student}/print', [StudentController::class, 'print'])
-            ->name('students.print');
+        // Route::get('student/{student}/print', [StudentController::class, 'print'])
+        //     ->name('students.print');
+        Route::get('attendance/register-daily', [AttendanceController::class, 'registerDaily'])
+            ->name('attendance.registerDaily');
         Route::get(
             'attendances/justifications',
             [AttendanceJustificationController::class, 'index']
@@ -93,11 +95,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('noActiveCourse');
     Route::post('courses', [CourseController::class, 'store'])->name('courses.store')
         ->middleware('noActiveCourse');
+    Route::put('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::middleware('courseExists')->group(function () {
         Route::get('courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
         Route::get('courses/{course}', [CourseController::class, 'show'])
             ->name('courses.show');
-        Route::put('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+
         Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
     });
     Route::resource('awqafs', AwqafController::class);

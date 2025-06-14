@@ -17,17 +17,24 @@ class SettingsController extends Controller
 {
     public function edit()
     {
-        $resultSet = ResultSetting::all();
-        $levels = Level::all();
-        $mistakes = Mistake::all();
-        $attendanceTypes = AttendanceType::all();
+        try {
+            $resultSet = ResultSetting::all();
+            $levels = Level::all();
+            $mistakes = Mistake::all();
+            $attendanceTypes = AttendanceType::all();
 
-        return view('dashboard.settings.edit', compact(
-            'resultSet',
-            'levels',
-            'mistakes',
-            'attendanceTypes'
-        ));
+            return view('dashboard.settings.edit', compact(
+                'resultSet',
+                'levels',
+                'mistakes',
+                'attendanceTypes'
+            ));
+        } catch (\Exception $e) {
+            Log::error('error', ['error' => $e->getMessage()]);
+            return back()
+                ->withInput()
+                ->with('danger', 'حدث خطأ أثناء جلب الإعدادات.');
+        }
     }
 
     /**

@@ -42,20 +42,37 @@ class AttendanceController extends Controller
                         'message' => 'لا يمكن تسجيل حضور لطالب لا ينتمي لحلقة الأستاذ.'
                     ], 406);
                 }
-            } elseif ($user->role_id === 3) {
+            } else {
                 // helper teacher: must have permission #2
                 $helper = $user->helperTeacher;
                 if (!$helper || !$helper->permissions->contains('id', 2)) {
                     throw new AccessDeniedHttpException('ليس لديك صلاحية تسجيل الحضور.');
                 }
             }
-            $attendance = Attendance::create([
-                'student_id' => $student->id,
-                'course_id' => course_id(),
-                'type_id' => $data['type'],
-                'attendance_date' => $today,
-                'by_id' => Auth::id()
-            ]);
+            $attendance = Attendance::where('student_id', $student->id)
+                ->where('course_id', course_id())
+                ->whereDate('attendance_date', $today)
+                ->first();
+
+            if ($attendance) {
+                if (in_array($attendance->type_id, [1, 3, 4], true)) {
+                    return response()->json([
+                        'message' => 'هذا الطالب سبق وتسجيل حضوره أو غيابه المبرر أو تأخيره لهذا اليوم.'
+                    ], 409);
+                }
+                $attendance->update([
+                    'type_id' => $data['type'],
+                    'by_id' => $user->id,
+                ]);
+            } else {
+                $attendance = Attendance::create([
+                    'student_id' => $student->id,
+                    'course_id' => course_id(),
+                    'type_id' => $data['type'],
+                    'attendance_date' => $today,
+                    'by_id' => $user->id,
+                ]);
+            }
             return response()->json([
                 'message' => 'تم تسجيل الحضور بنجاح.',
                 'date' => $today,
@@ -102,7 +119,7 @@ class AttendanceController extends Controller
             // Ensure same circle
             if ($student->circle_id !== $teacher->circle_id) {
                 return response()->json([
-                    'message' => 'لا يمكن تقديم طلب تبرير لهذا الطالب.'
+                    'message' => 'لا يمكن تقديم طلب تبرير لطالب في غير حلقة.'
                 ], 406);
             }
 

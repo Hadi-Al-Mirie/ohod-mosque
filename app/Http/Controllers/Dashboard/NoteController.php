@@ -15,26 +15,76 @@ class NoteController extends Controller
     public function index(Request $request)
     {
         try {
-            $request->validate([
-                'search' => 'nullable|string|max:255|min:1'
+            // 1) Validate incoming filters
+            $data = $request->validate([
+                'student_name' => 'nullable|string|min:1|max:255',
+                'teacher_name' => 'nullable|string|min:1|max:255',
+                'type' => 'nullable|in:positive,negative',
+                'date' => 'nullable|date',
+            ], [
+                'student_name.min' => 'يجب أن لا يقل الاسم عن حرف واحد.',
+                'student_name.max' => 'اسم الطالب طويل جداً (أقصى 255 حرف).',
+                'teacher_name.min' => 'يجب أن لا يقل اسم الأستاذ عن حرف واحد.',
+                'teacher_name.max' => 'اسم الأستاذ طويل جداً (أقصى 255 حرف).',
+                'type.in' => 'نوع الملاحظة غير صالح.',
+                'date.date' => 'التاريخ غير صالح.',
             ]);
+
+            // 2) Build base query: only approved notes
             $query = Note::with(['student.user', 'creator'])
                 ->where('status', 'approved');
 
-            if ($search = $request->get('search')) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('reason', 'LIKE', "%{$search}%")
-                        ->orWhereHas('student.user', fn($q) => $q->where('name', 'LIKE', "%{$search}%"))
-                        ->orWhereHas('creator', fn($q) => $q->where('name', 'LIKE', "%{$search}%"));
-                });
+            // 3a) Filter by student name
+            if (!empty($data['student_name'])) {
+                $query->whereHas(
+                    'student.user',
+                    fn($q) =>
+                    $q->where('name', 'like', "%{$data['student_name']}%")
+                );
             }
 
-            $notes = $query->orderBy('created_at', 'desc')->paginate(10);
+            // 3b) Filter by teacher (creator) name
+            if (!empty($data['teacher_name'])) {
+                $query->whereHas(
+                    'creator',
+                    fn($q) =>
+                    $q->where('name', 'like', "%{$data['teacher_name']}%")
+                );
+            }
 
-            return view('dashboard.notes.index', compact('notes'));
+            // 3c) Filter by note type
+            if (!empty($data['type'])) {
+                $query->where('type', $data['type']);
+            }
+
+            // 3d) Filter by exact created_at date
+            if (!empty($data['date'])) {
+                $query->whereDate('created_at', $data['date']);
+            }
+
+            // 4) Paginate & return
+            $notes = $query->orderBy('created_at', 'desc')
+                ->paginate(10)
+                ->withQueryString();
+
+            // for the type dropdown
+            $types = [
+                'positive' => 'إيجابي',
+                'negative' => 'سلبي',
+            ];
+
+            return view('dashboard.notes.index', compact('notes', 'types'));
         } catch (Exception $e) {
-            Log::error('Error loading approved notes', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('danger', 'حدث خطأ أثناء جلب الملاحظات.');
+            Log::error('Error loading approved notes', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'filters' => $request->all(),
+            ]);
+
+            return redirect()
+                ->route('admin.notes.index')
+                ->withInput()
+                ->with('danger', 'حدث خطأ أثناء جلب الملاحظات.');
         }
     }
 
@@ -57,7 +107,7 @@ class NoteController extends Controller
             return view('dashboard.notes.requests', compact('notes'));
         } catch (Exception $e) {
             Log::error('Error loading pending notes', ['error' => $e->getMessage()]);
-            return redirect()->back()->with('danger', 'حدث خطأ أثناء جلب طلبات الملاحظات.');
+            return redirect()->back()->withInput()->with('danger', 'حدث خطأ أثناء جلب طلبات الملاحظات.');
         }
     }
 
@@ -68,7 +118,7 @@ class NoteController extends Controller
             return view('dashboard.notes.show', compact('note'));
         } catch (Exception $e) {
             Log::error('Error showing note', ['id' => $note->id, 'error' => $e->getMessage()]);
-            return redirect()->back()->with('danger', 'حدث خطأ أثناء عرض الملاحظة.');
+            return redirect()->back()->withInput()->with('danger', 'حدث خطأ أثناء عرض الملاحظة.');
         }
     }
 

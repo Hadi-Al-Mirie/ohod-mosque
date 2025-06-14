@@ -30,72 +30,105 @@ class RecitationController extends Controller
 
     public function check(Request $request)
     {
-        $data = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:students,id'],
-            'page' => ['required', 'integer', 'min:1', 'max:604'],
-        ]);
-
-        $student = Student::findOrFail($data['student_id']);
-        $activeCourse = Course::where('is_active', true)->first();
-        $currentCId = $activeCourse?->id;
-        // collect all final recitations
-        $allRecs = Recitation::where('student_id', $student->id)
-            ->where('is_final', true)
-            ->get(['id', 'page', 'course_id']);
-
-        $p = $data['page'];
-
-        $result = [];
-        // all recitations on this page
-        $matches = $allRecs->where('page', $p);
-
-        $hasCurrent = $matches->contains(fn($r) => $r->course_id === $currentCId);
-        $hasPrevious = $matches->contains(fn($r) => $r->course_id !== $currentCId);
-
-        if ($hasCurrent) {
-            $result[] = [
-                'page' => $p,
-                'status' => 'cannot',
-                'reason' => 'already_in_current',
-            ];
-        } elseif ($hasPrevious) {
-            $result[] = [
-                'page' => $p,
-                'status' => 'cannot',
-                'reason' => 'already_in_previous',
-            ];
-        } else {
-            // find any recitation record anyway (could happen if is_final was false previously)
-            $pastRecs = Recitation::where('student_id', $student->id)
-                ->where('page', $p)
-                ->orderBy('created_at', 'desc')
-                ->with(['mistakesRecords.mistake'])
-                ->get();
-
-            $recs = $pastRecs->map(fn($rec) => [
-                'recitation_id' => $rec->id,
-                'course_id' => $rec->course_id,
-                'is_final' => (bool) $rec->is_final,
-                'created_at' => $rec->created_at->toDateTimeString(),
-                'mistakes' => $rec->mistakesRecords->map(fn($mr) => [
-                    'id' => $mr->id,
-                    'mistake_id' => $mr->mistake_id,
-                    'mistake' => $mr->mistake->name,
-                    'page_number' => $mr->page_number,
-                    'line_number' => $mr->line_number,
-                    'word_number' => $mr->word_number,
-                ]),
+        try {
+            $data = $request->validate([
+                'student_id' => ['required', 'string', 'exists:students,qr_token'],
+                'page' => ['required', 'integer', 'min:1', 'max:604'],
             ]);
+            $user = Auth::user();
+            $student = Student::where('qr_token', $data['student_id'])->firstOrFail();
+            if ($user->role_id === 2) {
+                $teacher = $user->teacher;
+                if (!$teacher || $student->circle_id !== $teacher->circle_id) {
+                    return response()->json([
+                        'message' => 'لا يمكنك تسجيل هذا التسميع لطالب خارج حلقتك.'
+                    ], 403);
+                }
+            }
+            if ($user->role_id === 3) {
+                $helper = $user->helperTeacher;
+                if (!$helper || !$helper->permissions->contains('id', 1)) {
+                    throw new AccessDeniedHttpException('ليس لديك صلاحية تنفيذ هذا الإجراء.');
+                }
+            }
+            $activeCourse = Course::where('is_active', true)->first();
+            $currentCId = $activeCourse?->id;
+            // collect all final recitations
+            $allRecs = Recitation::where('student_id', $student->id)
+                ->where('is_final', true)
+                ->get(['id', 'page', 'course_id']);
 
-            $result[] = [
-                'status' => 'can',
-                'recitations' => $recs,
-            ];
+            $p = $data['page'];
+
+            $result = [];
+            // all recitations on this page
+            $matches = $allRecs->where('page', $p);
+
+            $hasCurrent = $matches->contains(fn($r) => $r->course_id === $currentCId);
+            $hasPrevious = $matches->contains(fn($r) => $r->course_id !== $currentCId);
+
+            if ($hasCurrent) {
+                $result[] = [
+                    'page' => $p,
+                    'status' => 'cannot',
+                    'reason' => 'already_in_current',
+                ];
+            } elseif ($hasPrevious) {
+                $result[] = [
+                    'page' => $p,
+                    'status' => 'cannot',
+                    'reason' => 'already_in_previous',
+                ];
+            } else {
+                // find any recitation record anyway (could happen if is_final was false previously)
+                $pastRecs = Recitation::where('student_id', $student->id)
+                    ->where('page', $p)
+                    ->orderBy('created_at', 'desc')
+                    ->with(['mistakesRecords.mistake'])
+                    ->get();
+
+                $recs = $pastRecs->map(fn($rec) => [
+                    'recitation_id' => $rec->id,
+                    'course_id' => $rec->course_id,
+                    'is_final' => (bool) $rec->is_final,
+                    'created_at' => $rec->created_at->toDateTimeString(),
+                    'mistakes' => $rec->mistakesRecords->map(fn($mr) => [
+                        'id' => $mr->id,
+                        'mistake_id' => $mr->mistake_id,
+                        'mistake' => $mr->mistake->name,
+                        'page_number' => $mr->page_number,
+                        'line_number' => $mr->line_number,
+                        'word_number' => $mr->word_number,
+                    ]),
+                ]);
+
+                $result[] = [
+                    'status' => 'can',
+                    'recitations' => $recs,
+                ];
+            }
+            return response()->json([
+                'page' => $p,
+                'details' => $result,
+            ], 200);
+        } catch (ValidationException $ve) {
+            return response()->json([
+                'message' => 'Invalid input.',
+                'errors' => $ve->errors(),
+            ], 422);
+
+        } catch (ModelNotFoundException $mnfe) {
+            return response()->json([
+                'message' => 'Student not found.',
+            ], 404);
+
+        } catch (\Exception $e) {
+            Log::error('Error in recitation.check', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'An unexpected error occurred.',
+            ], 500);
         }
-        return response()->json([
-            'page' => $p,
-            'details' => $result,
-        ], 200);
+
     }
 
 
@@ -107,7 +140,7 @@ class RecitationController extends Controller
     {
         try {
             $data = $request->validate([
-                'student_id' => ['required', 'integer', 'exists:students,id'],
+                'student_id' => ['required', 'string', 'exists:students,qr_token'],
                 'page' => ['required', 'integer', 'min:1', 'max:604'],
                 'mistakes' => ['required', 'array', 'min:1'],
                 'mistakes.*.mistake_id' => ['required', 'integer', 'exists:mistakes,id'],
@@ -116,10 +149,18 @@ class RecitationController extends Controller
                 'mistakes.*.word_number' => ['required', 'integer', 'min:0', 'max:25'],
             ]);
 
-            $student = Student::findOrFail($data['student_id']);
+            $student = Student::where('qr_token', $data['student_id'])->firstOrFail();
             $activeCourse = Course::where('is_active', true)->firstOrFail();
             $user = Auth::user();
             $byId = Auth::user()->id;
+            if ($user->role_id === 2) {
+                $teacher = $user->teacher;
+                if (!$teacher || $student->circle_id !== $teacher->circle_id) {
+                    return response()->json([
+                        'message' => 'لا يمكنك تسجيل هذا التسميع لطالب خارج حلقتك.'
+                    ], 403);
+                }
+            }
             if ($user->role_id === 3) {
                 $helper = $user->helperTeacher;
                 if (!$helper || !$helper->permissions->contains('id', 1)) {

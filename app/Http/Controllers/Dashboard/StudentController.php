@@ -13,7 +13,6 @@ use App\Models\Recitation;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Spatie\Browsershot\Browsershot;
 use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +216,7 @@ class StudentController extends Controller
                 'name' => 'required|string|max:255',
                 'circle' => 'required|exists:circles,id',
                 'level' => 'required|exists:levels,id',
+                'password' => 'required|string|min:8|max:64',
                 'birthday' => 'nullable|date',
                 'father_name' => 'nullable|string|max:255',
                 'mother_name' => 'nullable|string|max:255',
@@ -229,13 +229,22 @@ class StudentController extends Controller
                 'class' => 'nullable|string|max:255',
             ]);
             $qrcode = null;
-            $password = null;
             $student = null;
-            DB::transaction(function () use ($request, &$qrcode, &$password, &$student) {
-                $password = Str::random(8);
+            $exists = Student::whereHas(
+                'user',
+                fn($q) =>
+                $q->where('name', $request->input('name'))
+            )->exists();
+
+            if ($exists) {
+                throw ValidationException::withMessages([
+                    'name' => ["هذا الطالب موجود مسبقا"]
+                ]);
+            }
+            DB::transaction(function () use ($request, &$qrcode, &$student) {
                 $user = User::create([
                     'name' => $request->input('name'),
-                    'password' => $password,
+                    'password' => $request->input('password'),
                     'role_id' => 4,
                 ]);
                 do {
@@ -259,25 +268,20 @@ class StudentController extends Controller
                 ]);
                 $qrcode = QrCode::format('png')->size(500)->generate($token);
             });
-            return view('dashboard.students.show', compact('qrcode', 'password', 'student'));
-        } catch (ValidationException $e) {
-            return redirect()
-                ->back()
+            return redirect()->route('admin.students.show', ['student' => $student->id]);
+        } catch (ValidationException $ve) {
+            return back()
                 ->withInput()
-                ->withErrors([
-                    'exception' => $e->getMessage(),
-                ]);
+                ->withErrors($ve->errors())
+                ->with('danger', 'تأكد من صحة بيانات الطالب.');
         } catch (Exception $e) {
             Log::error('Error registering attendance', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return redirect()
-                ->back()
-                ->withInput()
-                ->withErrors([
-                    'friendly' => 'حدث خطأ أثناء إنشاء الطالب. حاول مرة أخرى.',
-                ]);
+            Log::error('Error listing sabrs', ['error' => $e->getMessage()]);
+            return back()
+                ->with('danger', 'حدث خطأ أثناء تسجبل الطالب.');
         }
     }
 
@@ -289,16 +293,9 @@ class StudentController extends Controller
             $now = now();
             $oneWeekAgo = (clone $now)->subWeek();    // today – 1 week
             $twoWeeksAgo = (clone $now)->subWeeks(2);  // today – 2 weeks
-            Log::info("Student {$student->id} oneWeekAgo: {$oneWeekAgo}");
-            Log::info("Student {$student->id} twoWeeksAgo: {$twoWeeksAgo}");
-
-
             $pointsUpToTwo = $student->pointsUpTo($twoWeeksAgo);
             $pointsUpToOne = $student->pointsUpTo($oneWeekAgo);
             $pointsGainedLastWeek = $pointsUpToOne - $pointsUpToTwo;
-            // Log::info("Student {$student->id} pointsGainedThisWeek: {$pointsGainedThisWeek}");
-            Log::info("Student {$student->id} pointsGainedLastWeek: {$pointsGainedLastWeek}");
-
             return view('dashboard.students.show', [
                 'qrcode' => QrCode::format('png')->size(500)->generate($student->qr_token),
                 'student' => $student,
@@ -343,36 +340,6 @@ class StudentController extends Controller
         }
     }
 
-
-    public function print(Student $student)
-    {
-        try {
-            $qrcode = QrCode::format('png')->size(500)->generate($student->qr_token);
-            $data = [
-                'student' => $student,
-                'qrcode' => $qrcode,
-            ];
-            $html = view('dashboard.students.print', $data)->render();
-            $pdfContent = Browsershot::html($html)
-                ->setNodeBinary('C:\Users\LEGION\AppData\Local\nvm\v18.20.7\node.exe')
-                ->setNpmBinary('C:\Users\LEGION\AppData\Local\nvm\v18.20.7\npm.cmd')
-                ->format('A5')
-                ->margins(0, 0, 0, 0)
-                ->showBackground()
-                ->setDelay(2000)
-                ->landscape()
-                ->pdf();
-            $fileName = 'student-info' . $student->id . '.pdf';
-            return response($pdfContent, 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error print student', ['error' => $e->getMessage()]);
-            return redirect()->back()
-                ->with('danger', 'حدث خطأ أثناء الطباعة.');
-        }
-    }
     /**
      * Show the form for editing the specified resource.
      */

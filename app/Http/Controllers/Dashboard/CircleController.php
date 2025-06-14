@@ -105,140 +105,147 @@ class CircleController extends Controller
      */
     public function show(Circle $circle)
     {
-        $activeCourse = Course::where('is_active', true)->first();
-        $studentIds = $circle->students->pluck('id');
+        try {
+            $activeCourse = Course::where('is_active', true)->first();
+            $studentIds = $circle->students->pluck('id');
 
-        $records = Attendance::where('course_id', $activeCourse->id)
-            ->whereIn('student_id', $studentIds)
-            ->get();
+            $records = Attendance::where('course_id', $activeCourse->id)
+                ->whereIn('student_id', $studentIds)
+                ->get();
 
-        $totalAttendances = $records->count();
+            $totalAttendances = $records->count();
 
-        $countsByTypeId = $records
-            ->groupBy('type_id')
-            ->map(fn($group) => $group->count());
+            $countsByTypeId = $records
+                ->groupBy('type_id')
+                ->map(fn($group) => $group->count());
 
-        $attendanceStats = AttendanceType::all()
-            ->mapWithKeys(function (AttendanceType $type) use ($countsByTypeId, $totalAttendances) {
-                $count = $countsByTypeId->get($type->id, 0);
-                $ratio = $totalAttendances > 0
-                    ? round(($count / $totalAttendances) * 100, 2)
-                    : 0.00;
-                return [
-                    $type->name => [
-                        'count' => $count,
-                        'ratio' => $ratio,
-                    ]
-                ];
-            })
-            ->toArray();
+            $attendanceStats = AttendanceType::all()
+                ->mapWithKeys(function (AttendanceType $type) use ($countsByTypeId, $totalAttendances) {
+                    $count = $countsByTypeId->get($type->id, 0);
+                    $ratio = $totalAttendances > 0
+                        ? round(($count / $totalAttendances) * 100, 2)
+                        : 0.00;
+                    return [
+                        $type->name => [
+                            'count' => $count,
+                            'ratio' => $ratio,
+                        ]
+                    ];
+                })
+                ->toArray();
 
-        $recs = Recitation::where('course_id', $activeCourse->id)
-            ->whereIn('student_id', $studentIds)
-            ->get();
-        $recitationCount = $recs->count();
+            $recs = Recitation::where('course_id', $activeCourse->id)
+                ->whereIn('student_id', $studentIds)
+                ->get();
+            $recitationCount = $recs->count();
 
-        $recitationAvg = $recitationCount > 0
-            ? $recs->sum(fn($r) => (int) assessmentRawScore($r)) / $recitationCount
-            : 0;
+            $recitationAvg = $recitationCount > 0
+                ? $recs->sum(fn($r) => (int) assessmentRawScore($r)) / $recitationCount
+                : 0;
 
-        $recitationBySetting = $recs
-            ->map(fn($r) => $r->calculateResult())
-            ->countBy()
-            ->toArray();
+            $recitationBySetting = $recs
+                ->map(fn($r) => $r->calculateResult())
+                ->countBy()
+                ->toArray();
 
-        $sabs = Sabr::where('course_id', $activeCourse->id)
-            ->whereIn('student_id', $studentIds)
-            ->get();
-        $sabrCount = $sabs->count();
-        $sabrAvg = $sabrCount > 0
-            ? $sabs->sum(fn($s) => (int) assessmentRawScore($s)) / $sabrCount
-            : 0;
+            $sabs = Sabr::where('course_id', $activeCourse->id)
+                ->whereIn('student_id', $studentIds)
+                ->get();
+            $sabrCount = $sabs->count();
+            $sabrAvg = $sabrCount > 0
+                ? $sabs->sum(fn($s) => (int) assessmentRawScore($s)) / $sabrCount
+                : 0;
 
-        $sabrBySetting = $sabs
-            ->map(fn($s) => $s->calculateResult())
-            ->countBy()
-            ->toArray();
+            $sabrBySetting = $sabs
+                ->map(fn($s) => $s->calculateResult())
+                ->countBy()
+                ->toArray();
 
 
-        $topOverall = $circle->students
-            ->map(fn($stu) => [
-                'student' => $stu,
-                'points' => $stu->points,
-            ])
-            ->sortByDesc('points')
-            ->take(3)
-            ->values();
+            $topOverall = $circle->students
+                ->map(fn($stu) => [
+                    'student' => $stu,
+                    'points' => $stu->points,
+                ])
+                ->sortByDesc('points')
+                ->take(3)
+                ->values();
 
-        $topReciters = $circle->students
-            ->map(fn($stu) => [
-                'student' => $stu,
-                'points' => $stu->recitations()
-                    ->where('course_id', $activeCourse->id)
-                    ->get()
-                    ->sum(fn($r) => optional(
-                        ResultSetting::where('type', 'recitation')
-                            ->where('min_res', '<=', assessmentRawScore($r))
-                            ->where('max_res', '>=', assessmentRawScore($r))
-                            ->first()
-                    )->points ?? 0)
-            ])
-            ->sortByDesc('points')
-            ->take(3)
-            ->values();
+            $topReciters = $circle->students
+                ->map(fn($stu) => [
+                    'student' => $stu,
+                    'points' => $stu->recitations()
+                        ->where('course_id', $activeCourse->id)
+                        ->get()
+                        ->sum(fn($r) => optional(
+                            ResultSetting::where('type', 'recitation')
+                                ->where('min_res', '<=', assessmentRawScore($r))
+                                ->where('max_res', '>=', assessmentRawScore($r))
+                                ->first()
+                        )->points ?? 0)
+                ])
+                ->sortByDesc('points')
+                ->take(3)
+                ->values();
 
-        $topSabrs = $circle->students
-            ->map(fn($stu) => [
-                'student' => $stu,
-                'points' => $stu->sabrs()
-                    ->where('course_id', $activeCourse->id)
-                    ->get()
-                    ->sum(fn($s) => optional(
-                        ResultSetting::where('type', 'sabr')
-                            ->where('min_res', '<=', assessmentRawScore($s))
-                            ->where('max_res', '>=', assessmentRawScore($s))
-                            ->first()
-                    )->points ?? 0)
-            ])
-            ->sortByDesc('points')
-            ->take(3)
-            ->values();
+            $topSabrs = $circle->students
+                ->map(fn($stu) => [
+                    'student' => $stu,
+                    'points' => $stu->sabrs()
+                        ->where('course_id', $activeCourse->id)
+                        ->get()
+                        ->sum(fn($s) => optional(
+                            ResultSetting::where('type', 'sabr')
+                                ->where('min_res', '<=', assessmentRawScore($s))
+                                ->where('max_res', '>=', assessmentRawScore($s))
+                                ->first()
+                        )->points ?? 0)
+                ])
+                ->sortByDesc('points')
+                ->take(3)
+                ->values();
 
-        $attendanceValues = AttendanceType::pluck('value', 'id');
-        $topAttendees = $circle->students
-            ->map(fn($stu) => [
-                'student' => $stu,
-                'points' => $stu->attendances()
-                    ->where('course_id', $activeCourse->id)
-                    ->get()
-                    ->sum(fn($att) => $attendanceValues->get($att->type_id, 0))
-            ])
-            ->sortByDesc('points')
-            ->take(3)
-            ->values();
+            $attendanceValues = AttendanceType::pluck('value', 'id');
+            $topAttendees = $circle->students
+                ->map(fn($stu) => [
+                    'student' => $stu,
+                    'points' => $stu->attendances()
+                        ->where('course_id', $activeCourse->id)
+                        ->get()
+                        ->sum(fn($att) => $attendanceValues->get($att->type_id, 0))
+                ])
+                ->sortByDesc('points')
+                ->take(3)
+                ->values();
 
-        $allCircles = Circle::all();
-        $attendanceRank = $this->rankByAttendances($allCircles, $circle->id, $activeCourse->id);
-        $recitationRank = $this->rankByRecitations($allCircles, $circle->id, $activeCourse->id);
-        $sabrRank = $this->rankBySabrs($allCircles, $circle->id, $activeCourse->id);
+            $allCircles = Circle::all();
+            $attendanceRank = $this->rankByAttendances($allCircles, $circle->id, $activeCourse->id);
+            $recitationRank = $this->rankByRecitations($allCircles, $circle->id, $activeCourse->id);
+            $sabrRank = $this->rankBySabrs($allCircles, $circle->id, $activeCourse->id);
 
-        return view('dashboard.circles.show', [
-            'circle' => $circle,
-            'attendanceStats' => $attendanceStats,
-            'recitationCount' => $recitationCount,
-            'recitationAvg' => $recitationAvg,
-            'recitationBySetting' => $recitationBySetting,
-            'sabrCount' => $sabrCount,
-            'sabrAvg' => $sabrAvg,
-            'sabrBySetting' => $sabrBySetting,
-            'attendanceRank' => $attendanceRank,
-            'recitationRank' => $recitationRank,
-            'sabrRank' => $sabrRank,
-            'topReciters' => $topReciters,
-            'topSabrs' => $topSabrs,
-            'topAttendees' => $topAttendees,
-            'topOverall' => $topOverall,
-        ]);
+            return view('dashboard.circles.show', [
+                'circle' => $circle,
+                'attendanceStats' => $attendanceStats,
+                'recitationCount' => $recitationCount,
+                'recitationAvg' => $recitationAvg,
+                'recitationBySetting' => $recitationBySetting,
+                'sabrCount' => $sabrCount,
+                'sabrAvg' => $sabrAvg,
+                'sabrBySetting' => $sabrBySetting,
+                'attendanceRank' => $attendanceRank,
+                'recitationRank' => $recitationRank,
+                'sabrRank' => $sabrRank,
+                'topReciters' => $topReciters,
+                'topSabrs' => $topSabrs,
+                'topAttendees' => $topAttendees,
+                'topOverall' => $topOverall,
+            ]);
+        } catch (Exception $e) {
+            Log::error('error', ['error' => $e->getMessage()]);
+            return back()
+                ->withInput()
+                ->with('danger', 'حدث خطأ أثناء جلب بيانات الحلقة.');
+        }
     }
 
 
@@ -247,9 +254,16 @@ class CircleController extends Controller
      */
     public function edit(Circle $circle)
     {
-        // Retrieve all teachers to populate the dropdown
-        $teachers = Teacher::with('user')->get();
-        return view('dashboard.circles.edit', compact('circle', 'teachers'));
+        try {
+            // Retrieve all teachers to populate the dropdown
+            $teachers = Teacher::with('user')->get();
+            return view('dashboard.circles.edit', compact('circle', 'teachers'));
+        } catch (Exception $e) {
+            Log::error('error', ['error' => $e->getMessage()]);
+            return back()
+                ->withInput()
+                ->with('danger', 'حدث خطأ أثناء جلب بيانات الحلقة.');
+        }
     }
     public function update(Request $request, Circle $circle)
     {

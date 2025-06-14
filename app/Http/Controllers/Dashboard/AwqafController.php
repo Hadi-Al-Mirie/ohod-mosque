@@ -88,7 +88,7 @@ class AwqafController extends Controller
 
             return redirect()
                 ->route('admin.awqafs.index')
-                ->with('success', 'تم تحديث سجل الوقف بنجاح.');
+                ->with('success', 'تم تحديث سبر الأوقاف بنجاح.');
         } catch (ValidationException $ve) {
             return back()
                 ->withInput()
@@ -98,7 +98,7 @@ class AwqafController extends Controller
             Log::error('AwqafController@update error', ['error' => $e->getMessage()]);
             return back()
                 ->withInput()
-                ->with('danger', 'حدث خطأ أثناء تحديث سجل الوقف.');
+                ->with('danger', 'حدث خطأ أثناء تحديث سبر الأوقاف.');
         }
     }
 

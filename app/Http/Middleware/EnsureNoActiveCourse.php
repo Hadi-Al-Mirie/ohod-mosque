@@ -16,8 +16,9 @@ class EnsureNoActiveCourse
     {
         // if we already have an active course, redirect away:
         if (Course::where('is_active', true)->exists()) {
+            $c = course_id();
             return redirect()
-                ->route('admin.courses.index')
+                ->route('admin.courses.show', ['course' => $c])
                 ->with('danger', 'لا يمكنك إنشاء دورة جديدة قبل إغلاق الدورة الحالية.');
         }
 

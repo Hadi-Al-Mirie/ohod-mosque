@@ -8,162 +8,156 @@ use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Models\Course;
 class InfoController extends Controller
 {
     public function show(): JsonResponse
     {
         try {
-            $user = Auth::user();
-            $student = $user->student;
-            if (!$student) {
-                return response()->json(["message" => "failed to get the student"], 404);
-            }
+            $student = $this->getAuthenticatedStudent();
             $course = Student::activeCourse();
-            $now = now();
-            $oneWeekAgo = (clone $now)->subWeek();
-            $twoWeeksAgo = (clone $now)->subWeeks(2);
-
-            // Core metrics
-            $workingDays = $student->workingDaysCount();
-            $recitationsList = $student
-                ->recitations()
-                ->where('course_id', $course->id)
-                ->get()
-                ->map(fn($r) => [
-                    'id' => $r->id,
-                    'page' => $r->page,
-                    'result' => $r->calculateResult(),
-                ]);
-
-            // --- Build the per-item sabrs array ---
-            $sabrsList = $student
-                ->sabrs()
-                ->where('course_id', $course->id)
-                ->get()
-                ->map(fn($s) => [
-                    'id' => $s->id,
-                    'juz' => $s->juz,               // already cast to array
-                    'result' => $s->calculateResult(),
-                ]);
-            $recitationAvg = round($student->rawScores('recitation')->avg(), 2);
-
-            $sabrAvg = round($student->rawScores('sabr')->avg(), 2);
-
-
-            $recModels = $student
-                ->recitations()
-                ->where('course_id', $course->id)
-                ->get();
-
-            $sabrModels = $student
-                ->sabrs()
-                ->where('course_id', $course->id)
-                ->get();
-
-            // 2) Map to items including raw + result
-            $recitationsList = $recModels->map(fn($r) => [
-                'id' => $r->id,
-                'page' => $r->page,
-                'raw' => assessmentRawScore($r),
-                'result' => $r->calculateResult(),
-            ]);
-
-            $sabrsList = $sabrModels->map(fn($s) => [
-                'id' => $s->id,
-                'juz' => $s->juz,
-                'raw' => assessmentRawScore($s),
-                'result' => $s->calculateResult(),
-            ]);
-
-            // 3) Compute averages directly from those lists
-            $recitationAvg = round($recitationsList->avg('raw'), 2);
-            $sabrAvg = round($sabrsList->avg('raw'), 2);
-
-
-
-            $attendanceStats = $student->attendanceStats();
-            // eager-load the creator relationship (so we can inspect their role)
-            $notesList = $student
-                ->notes()
-                ->with('creator.role')
-                ->latest('updated_at')
-                ->get()
-                ->map(fn($note) => [
-                    'id' => $note->id,
-                    // if the creator’s role is admin (role_id 1 or 2), show "الإدارة"
-                    'by_name' => in_array($note->creator->role_id, [1, 2])
-                        ? 'الإدارة'
-                        : $note->creator->name,
-                    'type' => $note->type === 'positive' ? 'إيجابية' : 'سلبية',
-                    'status' => $note->status,
-                    'value' => $note->value,
-                    // only the date, in Y-m-d
-                    'updated_at' => $note->updated_at->toDateString(),
-                ]);
-
-
-            // Rankings now & previous
-            $rankNowCircle = $student->rankInCircle();
-            $rankNowMosque = $student->rankInMosque();
-            $rankPrevCircle = $student->rankInCircle($oneWeekAgo);
-            $rankPrevMosque = $student->rankInMosque($oneWeekAgo);
-
-            // Weekly deltas
-            $gainThisWeek = $student->pointsDelta($oneWeekAgo);
-            $gainLastWeek = $student->pointsDelta($twoWeeksAgo, $oneWeekAgo);
-            $improvementPercent = percent_change($gainThisWeek, $gainLastWeek);
-
-
 
             return response()->json([
-                'student' => [
-                    'id' => $student->id,
-                    'name' => $student->user->name,
-                ],
-                'course' => [
-                    'id' => $course->id,
-                    'name' => $course->name,
-                ],
-                'stats' => [
-                    'working_days' => $workingDays,
-                    'recitations' => [
-                        'count' => $recitationsList->count(),
-                        'average' => $recitationAvg,
-                        'result_break' => $student->resultCounts('recitation'),
-                        'points' => $student->recitationPoints(),
-                        'items' => $recitationsList,
-                    ],
-                    'sabrs' => [
-                        'count' => $sabrsList->count(),
-                        'average' => $sabrAvg,
-                        'result_break' => $student->resultCounts('sabr'),
-                        'points' => $student->sabrPoints(),
-                        'items' => $sabrsList,
-                    ],
-                    'attendance' => $attendanceStats,
-                    'notes' => $notesList,
-                ],
-                'rankings' => [
-                    'circle' => [
-                        'now' => $rankNowCircle,
-                        'prev' => $rankPrevCircle,
-                    ],
-                    'mosque' => [
-                        'now' => $rankNowMosque,
-                        'prev' => $rankPrevMosque,
-                    ],
-                ],
-                'weekly' => [
-                    'gain_this_week' => $gainThisWeek,
-                    'gain_last_week' => $gainLastWeek,
-                    'improvement_percent' => $improvementPercent,
-                ],
+                'student' => $this->studentPayload($student),
+                'course' => $this->coursePayload($course),
+                'stats' => $this->buildStats($student, $course),
+                'rankings' => $this->buildRankings($student),
+                'weekly' => $this->buildWeeklyDeltas($student),
             ]);
         } catch (Exception $e) {
             Log::error('Error showing student (API)', ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => 'Unable to fetch student data.',
-            ], 500);
+            return response()->json(['message' => 'Unable to fetch student data.'], 500);
         }
+    }
+
+    private function getAuthenticatedStudent(): Student
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // explicitly resolve the relation to the model:
+        $student = $user->student()->first();
+
+        if (!$student) {
+            abort(404, 'No student record found.');
+        }
+
+        return $student;
+    }
+
+    private function studentPayload(Student $student): array
+    {
+        return [
+            'id' => $student->id,
+            'name' => $student->user->name,
+        ];
+    }
+
+    private function coursePayload(Course $course): array
+    {
+        return [
+            'id' => $course->id,
+            'name' => $course->name,
+        ];
+    }
+
+    private function buildStats(Student $student, Course $course): array
+    {
+        $working_days = $student->workingDaysCount();
+        $recitations = $this->buildAssessmentSection($student, 'recitation', $course);
+        $sabrs = $this->buildAssessmentSection($student, 'sabr', $course);
+        $attendance = $student->attendanceStats();
+        $attendanceList = $this->buildAttendanceList($student, $course);
+        $notes = $this->buildNotesList($student);
+
+        return compact('working_days', 'recitations', 'attendanceList', 'sabrs', 'attendance', 'notes');
+    }
+
+    private function buildAssessmentSection(Student $student, string $type, Course $course): array
+    {
+        // use the same pattern for recitations and sabrs
+        $relationName = $type === 'recitation' ? 'recitations' : 'sabrs';
+        $rawScores = $student->rawScores($type);
+        $models = $student->{$relationName}()->where('course_id', $course->id)->get();
+
+        // items with raw + result
+        $items = $models->map(fn($m) => [
+            'id' => $m->id,
+            $type === 'recitation' ? 'page' : 'juz' => $m->{$type === 'recitation' ? 'page' : 'juz'},
+            'raw' => assessmentRawScore($m),
+            'result' => $m->calculateResult(),
+        ]);
+
+        return [
+            'count' => $items->count(),
+            'average' => round($items->avg('raw'), 2),
+            'result_break' => $student->resultCounts($type),
+            'points' => $type === 'recitation'
+                ? $student->recitationPoints()
+                : $student->sabrPoints(),
+            'items' => $items,
+        ];
+    }
+
+    private function buildAttendanceList(Student $student, Course $course): array
+    {
+        return $student->attendances()
+            ->where('course_id', $course->id)
+            ->with('type')
+            ->orderBy('attendance_date', 'asc')
+            ->get()
+            ->map(fn($att) => [
+                'date' => $att->attendance_date->toDateString(),
+                'attendanceType' => $att->type->name,
+            ])
+            ->toArray();
+    }
+    private function buildNotesList(Student $student): \Illuminate\Support\Collection
+    {
+        return $student->notes()
+            ->with('creator.role')
+            ->latest('updated_at')
+            ->get()
+            ->map(fn($note) => [
+                'id' => $note->id,
+                'by_name' => in_array($note->creator->role_id, [1, 2])
+                    ? 'الإدارة'
+                    : $note->creator->name,
+                'type' => $note->type === 'positive' ? 'إيجابية' : 'سلبية',
+                'status' => $note->status,
+                'value' => $note->value,
+                'updated_at' => $note->updated_at->toDateString(),
+            ]);
+    }
+
+    private function buildRankings(Student $student): array
+    {
+        $oneWeekAgo = now()->subWeek();
+        return [
+            'circle' => [
+                'now' => $student->rankInCircle(),
+                'prev' => $student->rankInCircle($oneWeekAgo),
+            ],
+            'mosque' => [
+                'now' => $student->rankInMosque(),
+                'prev' => $student->rankInMosque($oneWeekAgo),
+            ],
+        ];
+    }
+
+    private function buildWeeklyDeltas(Student $student): array
+    {
+        $now = now();
+        $oneWeek = (clone $now)->subWeek();
+        $twoWeeks = (clone $now)->subWeeks(2);
+        $gainThis = $student->pointsDelta($oneWeek);
+        $gainLast = $student->pointsDelta($twoWeeks, $oneWeek);
+        $percent = percent_change($gainThis, $gainLast);
+
+        return [
+            'gain_this_week' => $gainThis,
+            'gain_last_week' => $gainLast,
+            'improvement_percent' => $percent,
+        ];
     }
 }

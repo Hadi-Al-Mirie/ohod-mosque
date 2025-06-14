@@ -103,95 +103,133 @@ class CourseController extends Controller
 
     public function show(Course $course)
     {
-        $courseId = $course->id;
-        $circles = Circle::with('students')->get();
-        $attendanceValues = AttendanceType::pluck('value', 'id')->all();
-        $categories = $colors = $chartData = $tableRows = [];
+        try {
+            $courseId = $course->id;
+            $circles = Circle::with('students')->get();
+            $attendanceValues = AttendanceType::pluck('value', 'id')->all();
+            $categories = $colors = $chartData = $tableRows = [];
 
-        foreach ($circles as $circle) {
-            $studentIds = $circle->students->pluck('id');
-            $studentCount = $studentIds->count();
+            foreach ($circles as $circle) {
+                $studentIds = $circle->students->pluck('id');
+                $studentCount = $studentIds->count();
 
-            // === Sabr ===
-            $sabs = Sabr::where('course_id', $courseId)
-                ->whereIn('student_id', $studentIds)
-                ->get();
-            $sabrCount = $sabs->count();
-            $sabrAvg = $sabrCount
-                ? round($sabs->sum(fn($s) => assessmentRawScore($s)) / $sabrCount, 2)
-                : 0;
+                // === Sabr ===
+                $sabs = Sabr::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->get();
+                $sabrCount = $sabs->count();
+                $sabrAvg = $sabrCount
+                    ? round($sabs->sum(fn($s) => assessmentRawScore($s)) / $sabrCount, 2)
+                    : 0;
 
-            // === Recitation ===
-            $recs = Recitation::where('course_id', $courseId)
-                ->whereIn('student_id', $studentIds)
-                ->get();
-            $recCount = $recs->count();
-            $recAvg = $recCount
-                ? round($recs->sum(fn($r) => assessmentRawScore($r)) / $recCount, 2)
-                : 0;
+                // === Total sabr points for this circle ===
+                $totalSabrPoints = $circle
+                    ->students()            // NOTE: use the relation, not the property
+                    ->get()                 // fetch as a Collection
+                    ->sum(fn($s) => $s->sabrPoints());
 
-            $attRecords = Attendance::where('course_id', $courseId)
-                ->whereIn('student_id', $studentIds)
-                ->get();
+                // === Recitation ===
+                $recs = Recitation::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->get();
+                $recCount = $recs->count();
+                $recAvg = $recCount
+                    ? round($recs->sum(fn($r) => assessmentRawScore($r)) / $recCount, 2)
+                    : 0;
 
-            $attPoints = $attRecords->sum(
-                fn($att) =>
-                ($attendanceValues[$att->type_id] ?? 0)
-            );
+                // === Total recitation points ===
+                $totalRecitationPoints = $circle
+                    ->students()
+                    ->get()
+                    ->sum(fn($s) => $s->recitationPoints());
 
-            // === Notes ===
-            $notesQ = Note::where('course_id', $courseId)
-                ->whereIn('student_id', $studentIds)
-                ->where('status', 'approved');
-            $notesCount = $notesQ->count();
-            $netNotePts = $notesQ->sum('value');
+                // === Attendance ===
+                $attRecords = Attendance::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->get();
+                $attPoints = $attRecords->sum(
+                    fn($att) =>
+                    $attendanceValues[$att->type_id] ?? 0
+                );
 
-            // === Aggregate student points ===
-            $totalPoints = $circle->students
-                ->sum(fn($s) => $s->calculatePoints($courseId));
-            $avgPoints = $studentCount
-                ? round($totalPoints / $studentCount, 2)
-                : 0;
+                $totalAtt = $attRecords->count();
+                $presentCount = $attRecords->where('type_id', 1)->count();
+                $absentCount = $attRecords->where('type_id', 2)->count();
 
-            // === Overall performance score ===
-            $performance = round(
-                ($avgPoints),
-                2
-            );
+                // === Notes ===
+                $notesQ = Note::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->where('status', 'approved');
+                $notesCount = $notesQ->count();
+                $netNotePts = $notesQ->sum('value');
 
-            // Collect for chart & table
-            $categories[] = $circle->name;
-            $colors[] = '#' . substr(md5($circle->id), 0, 6);
-            $chartData[] = $performance;
+                $positiveNotes = Note::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->where('type', 'positive')
+                    ->count();
+                $negativeNotes = Note::where('course_id', $courseId)
+                    ->whereIn('student_id', $studentIds)
+                    ->where('type', 'negative')
+                    ->count();
 
-            $tableRows[] = [
-                'circle' => $circle->name,
-                'students' => $studentCount,
-                'sabr_count' => $sabrCount,
-                'sabr_avg' => $sabrAvg,
-                'rec_count' => $recCount,
-                'rec_avg' => $recAvg,
-                'att_points' => $attPoints,
-                'att_total' => $attRecords->count(),
-                // 'att_rate' => $attRecords->count()
-                //     ? round($attPoints / ($attRecords->count() * max($attendanceValues)) * 100, 2)
-                //     : 0,
-                'notes_count' => $notesCount,
-                'net_notes_points' => $netNotePts,
-                'avg_points' => $avgPoints,
-                'perf_score' => $performance,
-            ];
+                // === Aggregate student points ===
+                $totalPoints = $circle
+                    ->students()
+                    ->get()
+                    ->sum(fn($s) => $s->calculatePoints($courseId));
 
+                $avgPoints = $studentCount
+                    ? round($totalPoints / $studentCount, 2)
+                    : 0;
+
+                // === Overall performance score ===
+                $performance = round($avgPoints, 2);
+
+                // Collect for chart & table
+                $categories[] = $circle->name;
+                $colors[] = '#' . substr(md5($circle->id), 0, 6);
+                $chartData[] = $performance;
+
+                $tableRows[] = [
+                    'circle' => $circle->name,
+                    'students' => $studentCount,
+                    'sabr_count' => $sabrCount,
+                    'sabr_avg' => $sabrAvg,
+                    'rec_count' => $recCount,
+                    'rec_avg' => $recAvg,
+                    'att_points' => $attPoints,
+                    'att_total' => $totalAtt,
+                    'att_rate' => $totalAtt ? round($presentCount / $totalAtt * 100, 2) : 0,
+                    'presentCount' => $presentCount,
+                    'absentCount' => $absentCount,
+                    'recitation_points' => $totalRecitationPoints,
+                    'sabr_points' => $totalSabrPoints,
+                    'positive_notes' => $positiveNotes,
+                    'negative_notes' => $negativeNotes,
+                    'notes_count' => $notesCount,
+                    'net_notes_points' => $netNotePts,
+                    'avg_points' => $avgPoints,
+                    'perf_score' => $performance,
+                ];
+            }
+
+            usort($tableRows, fn($a, $b) => $b['att_points'] <=> $a['att_points']);
+
+            return view('dashboard.courses.show', compact(
+                'course',
+                'categories',
+                'colors',
+                'chartData',
+                'tableRows'
+            ));
+        } catch (Exception $e) {
+            Log::error('error', ['error' => $e->getMessage()]);
+            return back()
+                ->withInput()
+                ->with('danger', 'حدث خطأ أثناء جلب بيانات الدورة.');
         }
-        usort($tableRows, fn($a, $b) => $b['att_points'] <=> $a['att_points']);
-        return view('dashboard.courses.show', compact(
-            'course',
-            'categories',
-            'colors',
-            'chartData',
-            'tableRows'
-        ));
     }
+
 
     /**
      * Show the form for editing the specified resource.
@@ -213,6 +251,7 @@ class CourseController extends Controller
                 'end_date' => 'required|date|after:start_date',
                 'working_days' => 'required|array|min:1',
                 'working_days.*' => 'integer|in:0,1,2,3,4,5,6',
+                'deactivate' => 'required|boolean',
             ], [
                 'name.required' => 'اسم الدورة مطلوب.',
                 'name.string' => 'اسم الدورة غير صالح.',
@@ -227,6 +266,11 @@ class CourseController extends Controller
                 'working_days.*.integer' => 'أيام العمل يجب أن تكون أرقاماً.',
                 'working_days.*.in' => 'أيام العمل يجب أن تكون بين 0 و 6.',
             ]);
+            if (!active_exist()) {
+                return redirect()
+                    ->route('admin.dashboard')
+                    ->with('danger', 'أنشئ دورة ثم أعد المحاولة لاحقاً.');
+            }
             $active = Course::where('is_active', true)->first();
             if (!$active || $active->id !== $course->id) {
                 throw ValidationException::withMessages([
@@ -239,11 +283,18 @@ class CourseController extends Controller
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
                     'working_days' => json_encode($data['working_days']),
+                    'is_active' => !$data['deactivate'],
                 ]);
             });
-            return redirect()
-                ->route('admin.courses.index')
-                ->with('success', 'تم تعديل الدورة بنجاح.');
+            if ($course->is_active === false) {
+                return redirect()
+                    ->route('admin.dashboard')
+                    ->with('success', 'تم تعطيل الدورة بنجاح.');
+            } else {
+                return redirect()
+                    ->route('admin.courses.show', ['course' => $course->id])
+                    ->with('success', 'تم تعديل الدورة بنجاح.');
+            }
 
         } catch (ValidationException $ve) {
             return back()

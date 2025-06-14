@@ -10,38 +10,77 @@
         <div class="mb-4">
             <div class="row g-3">
                 <div class="col-12 col-lg-8">
-                    <form method="GET" action="{{ route('admin.sabrs.index') }}">
-                        <div class="input-group">
-                            @if (request('search_field') == 'result')
-                                <select name="search_value" id="search_value" class="form-select rounded-start">
-                                    @foreach ($settings as $setting)
-                                        <option value="{{ $setting->name }}"
-                                            {{ request('search_value') == $setting->name ? 'selected' : '' }}>
-                                            {{ $setting->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            @else
-                                <input type="text" name="search_value" class="form-control search-input rounded-start"
-                                    placeholder="🔍 أدخل كلمة البحث.." value="{{ request('search_value') }}"
-                                    id="search_value">
-                            @endif
-                            <select name="search_field" class="form-select select-style" id="search_field">
-                                <option value="student" {{ request('search_field') == 'student' ? 'selected' : '' }}>
-                                    <i class="fas fa-user me-2"></i> اسم الطالب
-                                </option>
-                                <option value="teacher" {{ request('search_field') == 'teacher' ? 'selected' : '' }}>
-                                    <i class="fas fa-chalkboard-teacher me-2"></i> اسم الاستاذ
-                                </option>
-                                <option value="result" {{ request('search_field') == 'result' ? 'selected' : '' }}>
-                                    <i class="fas fa-star me-2"></i> النتيجة
-                                </option>
-                            </select>
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                                <button class="btn btn-secondary mb-3" data-bs-toggle="modal" data-bs-target="#filterModal">
+                                    <i class="fas fa-filter me-2"></i> خيارات البحث
+                                </button>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+
+                    {{-- Filter Modal --}}
+                    <div class="modal fade" id="filterModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title w-100 text-center text-white">
+                                        <i class="fas fa-filter me-2"></i> فلاتر البحث
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                        data-bs-dismiss="modal"></button>
+                                </div>
+                                <form id="recitation-filter-form" method="GET" action="{{ route('admin.sabrs.index') }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">اسم الطالب</label>
+                                            <input type="text" name="student_name" value="{{ request('student_name') }}"
+                                                class="form-control" placeholder="🔍 اسم الطالب">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">اسم الأستاذ</label>
+                                            <input type="text" name="teacher_name" value="{{ request('teacher_name') }}"
+                                                class="form-control" placeholder="🔍 اسم الأستاذ">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">النتيجة</label>
+                                            <select name="result" class="form-select">
+                                                <option value="">— اختر النتيجة —</option>
+                                                @foreach ($settings as $s)
+                                                    <option value="{{ $s->name }}"
+                                                        {{ request('result') == $s->name ? 'selected' : '' }}>
+                                                        {{ $s->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="row g-2">
+                                            <div class="col">
+                                                <label class="form-label fw-bold">من تاريخ</label>
+                                                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                                                    class="form-control">
+                                            </div>
+                                            <div class="col">
+                                                <label class="form-label fw-bold">إلى تاريخ</label>
+                                                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                                                    class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer d-flex justify-content-between">
+                                        <button type="submit" form="recitation-filter-form" class="btn btn-primary">
+                                            <i class="fas fa-search me-1"></i> تطبيق
+                                        </button>
+                                        <a href="{{ route('admin.sabrs.index') }}" class="btn btn-danger">
+                                            <i class="fas fa-times me-1"></i> مسح الفلاتر
+                                        </a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

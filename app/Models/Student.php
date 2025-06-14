@@ -23,6 +23,7 @@ class Student extends Model
         'user_id',
         'circle_id',
         'level_id',
+        'qr_token',
         'cashed_points'
     ];
     protected $appends = ['points'];
@@ -49,24 +50,6 @@ class Student extends Model
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
-    }
-    public function attendanceRatio(): float
-    {
-        $activeCourse = Course::where('is_active', true)->first();
-        if (!$activeCourse) {
-            return 0.0;
-        }
-        $totalDays = $this->attendances()
-            ->where('course_id', $activeCourse->id)
-            ->count();
-        if ($totalDays === 0) {
-            return 0.0;
-        }
-        $daysAttended = $this->attendances()
-            ->where('type_id', 1)
-            ->where('course_id', $activeCourse->id)
-            ->count();
-        return ($daysAttended / $totalDays) * 100;
     }
     public function notes()
     {
@@ -109,8 +92,6 @@ class Student extends Model
         $cid = $courseId;
         $studentId = $this->id;
 
-        // ──────────────────────────────────────────────────────────────────────────────
-// 1) SABR: compute each final sabr’s raw score
         $sabrScoreSub = DB::table('sabrs')
             ->select('sabrs.id', DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'))
             ->leftJoin('mistakes_recordes AS mr', 'mr.sabr_id', 'sabrs.id')
@@ -124,7 +105,7 @@ class Student extends Model
             ->where('sabrs.is_final', true)
             ->groupBy('sabrs.id');
 
-        // 2) SABR: map raw_score → points, then sum
+
         $sabrPoints = DB::table('sabrs')
             ->joinSub($sabrScoreSub, 'scores', 'scores.id', 'sabrs.id')
             ->leftJoin('result_settings AS rs', function ($join) {
@@ -136,8 +117,6 @@ class Student extends Model
             ->value('sum_points');
 
 
-        // ──────────────────────────────────────────────────────────────────────────────
-// 3) RECITATION: compute each final recitation’s raw score
         $recScoreSub = DB::table('recitations')
             ->select('recitations.id', DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'))
             ->leftJoin('mistakes_recordes AS mr', 'mr.recitation_id', 'recitations.id')

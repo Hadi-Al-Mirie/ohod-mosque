@@ -3,7 +3,7 @@
 
 @section('content')
     <div class="container-fluid mt-5">
-
+        @include('dashboard.layouts.alert')
 
         <!-- Page Heading -->
         <h1 class="h3 mb-4 fw-bold text-center"

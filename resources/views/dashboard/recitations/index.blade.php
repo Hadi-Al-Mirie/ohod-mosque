@@ -11,40 +11,78 @@
         <div class="mb-4">
             <div class="row g-3">
                 <div class="col-12 col-lg-8">
-                    <form method="GET" action="{{ route('admin.recitations.index') }}">
-                        <div class="input-group">
-                            {{-- we’ll always replace the element with id="search_value" here --}}
-                            @if (request('search_field') == 'result')
-                                <select name="search_value" id="search_value" class="form-select rounded-start">
-                                    @foreach ($settings as $setting)
-                                        <option value="{{ $setting->name }}"
-                                            {{ request('search_value') == $setting->name ? 'selected' : '' }}>
-                                            {{ $setting->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            @else
-                                <input type="text" name="search_value" id="search_value"
-                                    class="form-control search-input rounded-start" placeholder="🔍 أدخل كلمة البحث.."
-                                    value="{{ request('search_value') }}">
-                            @endif
-
-                            <select name="search_field" class="form-select select-style" id="search_field">
-                                <option value="student" {{ request('search_field') == 'student' ? 'selected' : '' }}>
-                                    <i class="fas fa-user me-2"></i> اسم الطالب
-                                </option>
-                                <option value="teacher" {{ request('search_field') == 'teacher' ? 'selected' : '' }}>
-                                    <i class="fas fa-chalkboard-teacher me-2"></i> اسم الاستاذ
-                                </option>
-                                <option value="result" {{ request('search_field') == 'result' ? 'selected' : '' }}>
-                                    <i class="fas fa-star me-2"></i> النتيجة
-                                </option>
-                            </select>
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                                <button class="btn btn-secondary mb-3" data-bs-toggle="modal" data-bs-target="#filterModal">
+                                    <i class="fas fa-filter me-2"></i> خيارات البحث
+                                </button>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+
+                    {{-- Filter Modal --}}
+                    <div class="modal fade" id="filterModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title w-100 text-center text-white">
+                                        <i class="fas fa-filter me-2"></i> فلاتر البحث
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                        data-bs-dismiss="modal"></button>
+                                </div>
+                                <form id="recitation-filter-form" method="GET"
+                                    action="{{ route('admin.recitations.index') }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">اسم الطالب</label>
+                                            <input type="text" name="student_name" value="{{ request('student_name') }}"
+                                                class="form-control" placeholder="🔍 اسم الطالب">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">اسم الأستاذ</label>
+                                            <input type="text" name="teacher_name" value="{{ request('teacher_name') }}"
+                                                class="form-control" placeholder="🔍 اسم الأستاذ">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">النتيجة</label>
+                                            <select name="result" class="form-select">
+                                                <option value="">— اختر النتيجة —</option>
+                                                @foreach ($settings as $s)
+                                                    <option value="{{ $s->name }}"
+                                                        {{ request('result') == $s->name ? 'selected' : '' }}>
+                                                        {{ $s->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="row g-2">
+                                            <div class="col">
+                                                <label class="form-label fw-bold">من تاريخ</label>
+                                                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                                                    class="form-control">
+                                            </div>
+                                            <div class="col">
+                                                <label class="form-label fw-bold">إلى تاريخ</label>
+                                                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                                                    class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer d-flex justify-content-between">
+                                        <button type="submit" form="recitation-filter-form" class="btn btn-primary">
+                                            <i class="fas fa-search me-1"></i> تطبيق
+                                        </button>
+                                        <a href="{{ route('admin.recitations.index') }}" class="btn btn-danger">
+                                            <i class="fas fa-times me-1"></i> مسح الفلاتر
+                                        </a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -125,7 +163,8 @@
                                             @method('PATCH')
 
                                             <!-- hidden input to hold the “are you sure?” flag if you need it -->
-                                            <input type="hidden" name="confirm_toggle" id="confirm_toggle" value="0">
+                                            <input type="hidden" name="confirm_toggle" id="confirm_toggle"
+                                                value="0">
 
                                             <button type="button"
                                                 class="btn btn-sm btn-secondary hover-scale toggle-final-btn"
@@ -151,7 +190,8 @@
     </div>
 
     <!-- Toggle Final Confirmation Modal -->
-    <div class="modal fade" id="toggleFinalModal" tabindex="-1" aria-labelledby="toggleFinalModalLabel" aria-hidden="true">
+    <div class="modal fade" id="toggleFinalModal" tabindex="-1" aria-labelledby="toggleFinalModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-warning text-dark d-flex align-items-center justify-content-between">
@@ -163,96 +203,46 @@
                 </div>
                 <div class="modal-body">
                     <p class="mb-0 text-center">
-                        <span id="toggleFinalMessage">
-                            {{ $recitation->is_final ? 'السماح بالإعادة' : 'تثبيت كتسميع نهائي' }} ؟
-                        </span>
+                        <span id="toggleFinalMessage"></span>
                     </p>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-danger" id="confirmToggleFinal">تأكيد</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 </div>
-
             </div>
         </div>
     </div>
 
+
+
+
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const toggleModal = new bootstrap.Modal('#toggleFinalModal');
-            let currentForm;
-            let isFinalState;
+            let currentForm, isFinalState;
 
-            // 1. When any “.toggle-final-btn” is clicked, capture its form and state
             document.querySelectorAll('.toggle-final-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     currentForm = btn.closest('form.toggle-final-form');
                     isFinalState = btn.querySelector('i').classList.contains('fa-lock-open');
 
-                    // Set the modal message dynamically
                     const msgEl = document.getElementById('toggleFinalMessage');
                     msgEl.textContent = isFinalState ?
                         'سيتم إلغاء تثبيت هذا التسميع، وسيصبح قابلًا للإعادة.' :
                         'سيتم تثبيت هذا التسميع كـ "نهائي". لا يمكن التراجع بعد التثبيت.';
 
-                    // Reset hidden flag if you’re using it
                     currentForm.querySelector('#confirm_toggle').value = 0;
-
-                    // Show the modal
                     toggleModal.show();
                 });
             });
 
-            // 2. When the user confirms, submit the form
             document.getElementById('confirmToggleFinal').addEventListener('click', () => {
-                // If you need to send a flag:
                 currentForm.querySelector('#confirm_toggle').value = 1;
                 currentForm.submit();
                 toggleModal.hide();
             });
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            const labels = @json($settings->pluck('name'));
-            const fieldSel = document.getElementById('search_field');
-            const group = document.querySelector('.input-group');
-
-            function makeSelect(current) {
-                const s = document.createElement('select');
-                s.name = 'search_value';
-                s.id = 'search_value';
-                s.className = 'form-select rounded-start';
-                labels.forEach(lbl => {
-                    const o = document.createElement('option');
-                    o.value = lbl;
-                    o.textContent = lbl;
-                    if (lbl === current) o.selected = true;
-                    s.appendChild(o);
-                });
-                return s;
-            }
-
-            function makeInput(current) {
-                const i = document.createElement('input');
-                i.type = 'text';
-                i.name = 'search_value';
-                i.id = 'search_value';
-                i.className = 'form-control search-input rounded-start';
-                i.placeholder = '🔍 أدخل كلمة البحث..';
-                i.value = current || '';
-                return i;
-            }
-
-            function swap() {
-                const oldEl = document.getElementById('search_value');
-                const curr = oldEl.value;
-                const isRes = fieldSel.value === 'result';
-                const newEl = isRes ?
-                    makeSelect(curr) :
-                    makeInput(curr);
-                group.replaceChild(newEl, oldEl);
-            }
-            fieldSel.addEventListener('change', swap);
-            swap();
         });
     </script>
 @endsection

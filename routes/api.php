@@ -21,7 +21,7 @@ Route::post('/test', function () {
 });
 Route::post('/teacher/login', LoginController::class);
 
-Route::middleware('auth:sanctum')->prefix('teacher')->name('teacher.')->group(function () {
+Route::middleware(['auth:sanctum', 'courseExistsApi'])->prefix('teacher')->name('teacher.')->group(function () {
 
     // ———————————————————————————————
     // Group A: teacher OR helper-with-permission
@@ -40,7 +40,7 @@ Route::middleware('auth:sanctum')->prefix('teacher')->name('teacher.')->group(fu
         Route::get('circle/students', [CircleController::class, 'students']);
         Route::get('circle/students/{student}/basic-info', [CircleController::class, 'basicInfo'])
             ->missing(fn() => response()->json(['message' => 'الطالب غير موجود.'], 404));
-        Route::get('student/info', [StudentController::class, 'info']);
+        // Route::get('student/info', [StudentController::class, 'info']);
         Route::post('attendance/justify', [AttendanceController::class, 'justify']);
         Route::post('note/create', [NoteController::class, 'store'])->name('notes.store');
     });
@@ -53,7 +53,7 @@ Route::middleware('auth:sanctum')->prefix('teacher')->name('teacher.')->group(fu
 
 Route::post('/student/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'student', 'courseExistsApi'])->group(function () {
     Route::prefix('student')->name('student.')->group(function () {
         Route::get('/info', [InfoController::class, 'show'])->name('show');
         Route::get('logout', [AuthController::class, 'logout']);

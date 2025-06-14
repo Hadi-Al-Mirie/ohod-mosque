@@ -17,8 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'noCache' => \App\Http\Middleware\NoCache::class,
             'courseExists' => \App\Http\Middleware\EnsureCourseExists::class,
+            'courseExistsApi' => \App\Http\Middleware\EnsureCourseExistApi::class,
             'teacherOrHelper' => \App\Http\Middleware\EnsureTeacherOrHelper::class,
             'teacher' => \App\Http\Middleware\EnsureTeacher::class,
+            'student' => \App\Http\Middleware\EnsureStudent::class,
             'noActiveCourse' => \App\Http\Middleware\EnsureNoActiveCourse::class,
         ]);
     })

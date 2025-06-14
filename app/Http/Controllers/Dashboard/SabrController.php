@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
-
+use Illuminate\Validation\Rule;
 class SabrController extends Controller
 {
     /**
@@ -23,10 +23,19 @@ class SabrController extends Controller
             $request->validate([
                 'search_field' => 'nullable|string|in:student,teacher,result',
                 'search_value' => 'nullable|string|min:1|max:255',
+                'student_name' => 'nullable|string|max:255',
+                'teacher_name' => 'nullable|string|max:255',
+                'result' => [
+                    'nullable',
+                    'string',
+                    Rule::in(
+                        ResultSetting::where('type', 'sabr')->pluck('name')
+                    )
+                ],
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
             ], [
-                'search_field.in' => 'حقل البحث غير صالح.',
-                'search_value.min' => 'يجب أن لا يقل البحث عن حرف واحد.',
-                'search_value.max' => 'عبارة البحث طويلة جداً (أقصى 255 حرف).',
+                'date_to.after_or_equal' => 'تاريخ "إلى" يجب أن يكون بعد أو يساوي "من".',
             ]);
 
             $cid = course_id();
@@ -60,27 +69,53 @@ class SabrController extends Controller
                 ->addSelect('rs.name AS result_name')
                 ->with(['student.user', 'creator']);
 
-            // Apply filtering if requested
-            if ($field = $request->search_field) {
-                $value = $request->search_value;
-                if ($value) {
-                    match ($field) {
-                        'student' => $base->whereHas(
-                            'student.user',
-                            fn($q) =>
-                            $q->where('name', 'like', "%{$value}%")
-                        ),
-                        'teacher' => $base->whereHas(
-                            'creator',
-                            fn($q) =>
-                            $q->where('name', 'like', "%{$value}%")
-                        ),
-                        'result' => $base->where('rs.name', $value),
-                        default => null,
-                    };
-                }
+            // 4) New filter parameters
+            if ($request->filled('student_name')) {
+                $base->whereHas(
+                    'student.user',
+                    fn($q) =>
+                    $q->where('name', 'like', '%' . $request->student_name . '%')
+                );
             }
 
+            if ($request->filled('teacher_name')) {
+                $base->whereHas(
+                    'creator',
+                    fn($q) =>
+                    $q->where('name', 'like', '%' . $request->teacher_name . '%')
+                );
+            }
+
+            if ($request->filled('result')) {
+                $base->where('rs.name', $request->result);
+            }
+
+            if ($request->filled('date_from')) {
+                $base->whereDate('sabrs.created_at', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $base->whereDate('sabrs.created_at', '<=', $request->date_to);
+            }
+
+            // 5) Legacy search_field / search_value
+            $field = $request->search_field;
+            $value = $request->search_value;
+            if ($field && $value) {
+                match ($field) {
+                    'student' => $base->whereHas(
+                        'student.user',
+                        fn($q) => $q->where('name', 'like', "%{$value}%")
+                    ),
+                    'teacher' => $base->whereHas(
+                        'creator',
+                        fn($q) => $q->where('name', 'like', "%{$value}%")
+                    ),
+                    'result' => $base->where('rs.name', $value),
+                    default => null,
+                };
+            }
+
+            // 6) Paginate & return
             $sabrs = $base
                 ->orderBy('sabrs.created_at', 'desc')
                 ->paginate(10)

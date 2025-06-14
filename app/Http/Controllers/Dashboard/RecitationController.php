@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
-
+use Illuminate\Validation\Rule;
 class RecitationController extends Controller
 {
     /**
@@ -24,27 +24,24 @@ class RecitationController extends Controller
             $request->validate([
                 'search_field' => 'nullable|string|in:student,teacher,result',
                 'search_value' => 'nullable|string|min:1|max:255',
+                'student_name' => 'nullable|string|max:255',
+                'teacher_name' => 'nullable|string|max:255',
+                'result' => ['nullable', 'string', Rule::in(ResultSetting::where('type', 'recitation')->pluck('name'))],
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
             ], [
-                'search_field.in' => 'حقل البحث غير صالح.',
-                'search_value.min' => 'يجب أن لا يقل البحث عن حرف واحد.',
-                'search_value.max' => 'عبارة البحث طويلة جداً (أقصى 255 حرف).',
+                'date_to.after_or_equal' => 'تاريخ "إلى" يجب أن يكون بعد أو يساوي "من".',
             ]);
 
             $cid = course_id();
+            $settings = ResultSetting::where('type', 'recitation')->orderBy('min_res')->get();
 
-            $settings = ResultSetting::where('type', 'recitation')
-                ->orderBy('min_res')
-                ->get();
-
-            // Subquery: raw_score = 100 - sum(penalty per mistake record)
+            // build raw_score subquery (unchanged)
             $scoreSub = DB::table('recitations')
-                ->select([
-                    'recitations.id',
-                    DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'),
-                ])
+                ->select('recitations.id', DB::raw('100 - COALESCE(SUM(lm.value), 0) AS raw_score'))
                 ->leftJoin('mistakes_recordes AS mr', 'mr.recitation_id', 'recitations.id')
-                ->leftJoin('level_mistakes AS lm', function ($join) {
-                    $join->on('lm.mistake_id', 'mr.mistake_id')
+                ->leftJoin('level_mistakes AS lm', function ($j) {
+                    $j->on('lm.mistake_id', 'mr.mistake_id')
                         ->on('lm.level_id', 'recitations.level_id');
                 })
                 ->where('recitations.course_id', $cid)
@@ -54,34 +51,54 @@ class RecitationController extends Controller
                 ->select('recitations.*')
                 ->where('recitations.course_id', $cid)
                 ->joinSub($scoreSub, 'scores', 'scores.id', 'recitations.id')
-                ->leftJoin('result_settings AS rs', function ($join) {
-                    $join->on('rs.type', DB::raw("'recitation'"))
+                ->leftJoin('result_settings AS rs', function ($j) {
+                    $j->on('rs.type', DB::raw("'recitation'"))
                         ->on('rs.min_res', '<=', 'scores.raw_score')
                         ->on('rs.max_res', '>=', 'scores.raw_score');
                 })
                 ->addSelect('rs.name AS result_name')
                 ->with(['student.user', 'creator']);
 
-            if ($field = $request->search_field) {
-                $value = $request->search_value;
-                if ($value) {
-                    match ($field) {
-                        'student' => $base->whereHas(
-                            'student.user',
-                            fn($q) =>
-                            $q->where('name', 'like', "%{$value}%")
-                        ),
-                        'teacher' => $base->whereHas(
-                            'creator',
-                            fn($q) =>
-                            $q->where('name', 'like', "%{$value}%")
-                        ),
-                        'result' => $base->where('rs.name', $value),
-                        default => null,
-                    };
-                }
+            // 3) Apply your new filters:
+
+            if ($request->filled('student_name')) {
+                $base->whereHas(
+                    'student.user',
+                    fn($q) =>
+                    $q->where('name', 'like', '%' . $request->student_name . '%')
+                );
             }
 
+            if ($request->filled('teacher_name')) {
+                $base->whereHas(
+                    'creator',
+                    fn($q) =>
+                    $q->where('name', 'like', '%' . $request->teacher_name . '%')
+                );
+            }
+
+            if ($request->filled('result')) {
+                $base->where('rs.name', $request->result);
+            }
+
+            if ($request->filled('date_from')) {
+                $base->whereDate('recitations.created_at', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $base->whereDate('recitations.created_at', '<=', $request->date_to);
+            }
+
+            // 4) (Optional) preserve your old `search_field` / `search_value` logic
+            if ($field = $request->search_field && $value = $request->search_value) {
+                match ($field) {
+                    'student' => $base->whereHas('student.user', fn($q) => $q->where('name', 'like', "%{$value}%")),
+                    'teacher' => $base->whereHas('creator', fn($q) => $q->where('name', 'like', "%{$value}%")),
+                    'result' => $base->where('rs.name', $value),
+                    default => null,
+                };
+            }
+
+            // 5) Final pagination
             $recitations = $base
                 ->orderBy('recitations.created_at', 'desc')
                 ->paginate(10)

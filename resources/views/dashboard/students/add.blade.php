@@ -9,7 +9,7 @@
             <h1 class="display-6 fw-bold text-success">
                 <i class="fas fa-user-graduate me-2"></i> إضافة طالب جديد
             </h1>
-            <p class="text-black">املأ البيانات التالية لإضافة طالب جديد للنظام</p>
+            <p class="text-black">املأ البيانات التالية لإضافة طالب جديد </p>
         </div>
         @include('dashboard.layouts.alert')
 
@@ -24,7 +24,7 @@
                     <div class="row g-3">
 
                         <!-- Student Name -->
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="name" class="form-label fw-bold">
                                     <i class="fas fa-user me-2"></i> اسم الطالب
@@ -33,6 +33,21 @@
                                     class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}"
                                     placeholder="أدخل اسم الطالب">
                                 @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Student password -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-bold">
+                                    <i class="fa-solid fa-key"></i> كلمة السر
+                                </label>
+                                <input type="text" name="password" id="password"
+                                    class="form-control @error('password') is-invalid @enderror"
+                                    value="{{ old('password') }}" placeholder="أدخل كلمة السر ">
+                                @error('password')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

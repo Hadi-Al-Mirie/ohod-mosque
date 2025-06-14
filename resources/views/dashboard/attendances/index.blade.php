@@ -13,65 +13,69 @@
 
         <!-- Filters -->
         <div class="mb-4">
-            <div class="row g-3">
-                <div class="col-12 col-lg-8">
-                    <form method="GET" action="{{ route('admin.attendances.index') }}">
-                        <div class="input-group">
-                            {{-- 1) Date-picker icon only --}}
-                            <div class="input-group-text bg-white d-flex justify-content-center align-items-center date-picker-icon"
-                                style="position: relative; width:50px; cursor:pointer; padding:0;">
-                                <!-- Transparent date input covering whole container -->
-                                <input type="date" name="date" value="{{ old('date', request('date')) }}"
-                                    class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
-                                    style="z-index:2; pointer-events: none;">
-                                @error('date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <!-- Calendar icon -->
-                                <i class="fas fa-calendar-alt text-black" style="z-index:1; font-size:1.2em;"></i>
-                            </div>
-
-                            {{-- 2) Attendance Type --}}
-                            <select name="type" class="form-select @error('type') is-invalid @enderror">
-                                <option value="">الكل</option>
-                                <option value="1" {{ request('type') == '1' ? 'selected' : '' }}>حضور</option>
-                                <option value="2" {{ request('type') == '2' ? 'selected' : '' }}>غياب غير مبرر</option>
-                                <option value="3" {{ request('type') == '3' ? 'selected' : '' }}>غياب مبرر</option>
-                                <option value="4" {{ request('type') == '4' ? 'selected' : '' }}>تأخير</option>
-                            </select>
-
-                            {{-- 3) Student search --}}
-                            <input type="text" name="search_value"
-                                class="form-control @error('search_value') is-invalid @enderror"
-                                placeholder="🔍 أدخل اسم الطالب.."
-                                value="{{ old('search_value', request('search_value')) }}">
-
-                            {{-- 4) Submit --}}
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-
-                        {{-- Validation --}}
-                        @error('date')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                        @error('type')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                        @error('search_value')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                    </form>
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-2"></i> خيارات البحث
+                    </button>
                 </div>
-
-                <div class="col-12 col-lg-4 text-lg-end">
+                <div class="col-auto ms-auto">
                     <a href="{{ route('admin.attendances.create') }}" class="btn btn-success hover-scale">
                         <i class="fas fa-user-plus me-2"></i> تسجيل حضور جديد
                     </a>
                 </div>
             </div>
         </div>
+
+        {{-- Filter Modal --}}
+        <div class="modal fade" id="filterModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title w-100 text-center text-white">
+                            <i class="fas fa-filter me-2"></i> فلاتر البحث
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="recitation-filter-form" method="GET" action="{{ route('admin.attendances.index') }}">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم الطالب</label>
+                                <input type="text" name="student_name" value="{{ request('student_name') }}"
+                                    class="form-control" placeholder="🔍 اسم الطالب">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">النوع</label>
+                                <select name="type" class="form-select">
+                                    <option value="">— اختر النوع —</option>
+                                    @foreach ($types as $t)
+                                        <option value="{{ $t->id }}"
+                                            {{ request('type') == $t->id ? 'selected' : '' }}>
+                                            {{ $t->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label fw-bold">التاريخ</label>
+                                    <input type="date" name="date" value="{{ request('date') }}" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            <button type="submit" form="recitation-filter-form" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> تطبيق
+                            </button>
+                            <a href="{{ route('admin.attendances.index') }}" class="btn btn-danger">
+                                <i class="fas fa-times me-1"></i> مسح الفلاتر
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Table Section -->
         <div class="card shadow-lg">
