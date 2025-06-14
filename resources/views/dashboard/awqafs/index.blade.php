@@ -32,7 +32,7 @@
                                 <tr>
                                     <td>{{ $a->student->user->name }}</td>
                                     <td>{{ $a->creator->name }}</td>
-                                    <td>{{ $a->type }}</td>
+                                    <td>{{ $a->type_label }}</td>
                                     <td class="fw-bold">{{ $a->result ?? 'لم تحدد' }}</td>
                                     <td>
                                         <a href="{{ route('admin.awqafs.edit', $a->id) }}" class="btn btn-sm btn-primary">

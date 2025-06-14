@@ -18,6 +18,25 @@ class Awqaf extends Model
     protected $casts = [
         'juz' => 'array',
     ];
+
+    public static function typeLabels(): array
+    {
+        return [
+            'nomination' => 'ترشيح',
+            'retry' => 'إعادة محاولة',
+            'rejected' => 'مرفوض',
+            'not_attend' => 'لم يحضر',
+            'success' => 'نجاح',
+        ];
+    }
+
+    /**
+     * Accessor: get the translated label for this record's type.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return static::typeLabels()[$this->type] ?? $this->type;
+    }
     public function student()
     {
         return $this->belongsTo(Student::class);

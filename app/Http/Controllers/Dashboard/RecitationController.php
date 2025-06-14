@@ -149,7 +149,8 @@ class RecitationController extends Controller
             }
 
             $recitation->save();
-
+            $stu = $recitation->student;
+            $stu->update(['cashed_points' => $stu->points]);
             return redirect()
                 ->route('admin.recitations.index')
                 ->with('success', $message);

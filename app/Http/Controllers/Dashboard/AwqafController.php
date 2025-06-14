@@ -64,7 +64,7 @@ class AwqafController extends Controller
             $data = $request->validate([
                 'type' => [
                     'required',
-                    Rule::in(['nomination', 'retry', 'not_attend', 'success']),
+                    Rule::in(['nomination', 'retry', 'not_attend', 'rejected', 'success']),
                 ],
                 'result' => [
                     'exclude_unless:type,success,retry',
@@ -85,7 +85,8 @@ class AwqafController extends Controller
             $awqaf->type = $data['type'];
             $awqaf->result = $data['result'] ?? null;
             $awqaf->save();
-
+            $stu = $awqaf->student;
+            $stu->update(['cashed_points' => $stu->points]);
             return redirect()
                 ->route('admin.awqafs.index')
                 ->with('success', 'تم تحديث سبر الأوقاف بنجاح.');

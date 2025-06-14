@@ -10,6 +10,8 @@ use App\Models\AttendanceType;
 use App\Models\ResultSetting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Models\Recitation;
+use App\Models\Course;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -144,6 +146,22 @@ class SettingsController extends Controller
                 $atty->value = $val;
                 $atty->save();
                 Log::error('Error deleting recitation', ['id' => $atty->id, 'value' => $atty->value]);
+            }
+            $activeCourse = Course::where('is_active', true)->first();
+            if ($activeCourse) {
+                $recitations = Recitation::where('course_id', $activeCourse->id)->get();
+                foreach ($recitations as $rec) {
+                    $raw = assessmentRawScore($rec);
+                    $setting = ResultSetting::where('type', 'recitation')
+                        ->where('min_res', '<=', $raw)
+                        ->where('max_res', '>=', $raw)
+                        ->first();
+                    if ($setting && $setting->id === 4 && $rec->is_final) {
+                        $rec->update(['is_final' => false]);
+                    } elseif ($setting && $setting->id != 4 && $rec->is_final == false) {
+                        $rec->update(['is_final' => true]);
+                    }
+                }
             }
         });
         return redirect()

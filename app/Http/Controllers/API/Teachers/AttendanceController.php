@@ -73,6 +73,7 @@ class AttendanceController extends Controller
                     'by_id' => $user->id,
                 ]);
             }
+            $student->update(['cashed_points' => $student->points]);
             return response()->json([
                 'message' => 'تم تسجيل الحضور بنجاح.',
                 'date' => $today,

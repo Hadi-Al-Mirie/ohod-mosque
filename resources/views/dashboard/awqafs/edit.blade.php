@@ -18,51 +18,61 @@
                             <input type="text" class="form-control" value="{{ $awqaf->student->user->name }}" disabled>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">المسجل</label>
+                            <label class="form-label fw-bold">الأستاذ</label>
                             <input type="text" class="form-control" value="{{ $awqaf->creator->name }}" disabled>
                         </div>
-                    </div>
 
-                    {{-- Type --}}
-                    <div class="mb-4">
-                        <label for="type" class="form-label fw-bold">الحالة</label>
-                        <select name="type" id="type" class="form-select @error('type') is-invalid @enderror">
-                            <option value="">-- اختر الحالة --</option>
-                            <option value="nomination" {{ old('type', $awqaf->type) === 'nomination' ? 'selected' : '' }}>
-                                ترشيح
-                            </option>
-                            <option value="retry" {{ old('type', $awqaf->type) === 'retry' ? 'selected' : '' }}>إعادة
-                                محاولة</option>
-                            <option value="not_attend" {{ old('type', $awqaf->type) === 'not_attend' ? 'selected' : '' }}>لم
-                                يحضر
-                            </option>
-                            <option value="success" {{ old('type', $awqaf->type) === 'success' ? 'selected' : '' }}>نجاح
-                            </option>
-                        </select>
-                        @error('type')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
 
-                    {{-- Result (only for retry & success) --}}
-                    <div class="mb-4" id="resultField" style="display:none;">
-                        <label for="result" class="form-label fw-bold">النتيجة (0-100)</label>
-                        <input type="number" name="result" id="result"
-                            class="form-control @error('result') is-invalid @enderror"
-                            value="{{ old('result', $awqaf->result) }}" step="any" min="0" max="100">
-                        @error('result')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                        @php
+                            // Either use the Model accessor:
+                            // use App\Models\Awqaf;
+                            // $typeLabels = Awqaf::typeLabels();
 
+                            // Or define inline:
+                            $typeLabels = [
+                                'nomination' => 'ترشيح',
+                                'retry' => 'إعادة محاولة',
+                                'rejected' => 'مرفوض',
+                                'not_attend' => 'لم يحضر',
+                                'success' => 'نجاح',
+                            ];
+                        @endphp
+                        {{-- Result (only for retry & success) --}}
+                        <div class="mb-4 col-md-6" id="resultField" style="display:none;">
+                            <label for="result" class="form-label fw-bold">النتيجة (0-100)</label>
+                            <input type="number" name="result" id="result"
+                                class="form-control @error('result') is-invalid @enderror"
+                                value="{{ old('result', $awqaf->result) }}" step="any" min="0" max="100">
+                            @error('result')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        {{-- Type --}}
+                        <div class="mb-4 col-md-6">
+                            <label for="type" class="form-label fw-bold">الحالة</label>
+                            <select name="type" id="type" class="form-select @error('type') is-invalid @enderror">
+                                <option value="">-- اختر الحالة --</option>
+                                @foreach ($typeLabels as $value => $label)
+                                    <option value="{{ $value }}"
+                                        {{ old('type', $awqaf->type) === $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('type')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
                     {{-- Actions --}}
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ route('admin.awqafs.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> إلغاء
-                        </a>
-                        <button type="submit" class="btn btn-primary">
+                    <div class="d-flex justify-content-between mt-5">
+                        <button type="submit" class="btn btn-primary p-2">
                             <i class="fas fa-save me-1"></i> حفظ التغييرات
                         </button>
+                        <a href="{{ route('admin.awqafs.index') }}" class="btn btn-secondary p-2">
+                            <i class="fas fa-arrow-left me-1"></i> إلغاء
+                        </a>
+
                     </div>
                 </form>
             </div>

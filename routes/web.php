@@ -45,7 +45,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::middleware('courseExists')->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
-        Route::resource('users', UserController::class);
+        // Route::resource('users', UserController::class);
         Route::resource('circles', CircleController::class);
         Route::get('{student}/sabr-history', [SabrHistoryController::class, 'show'])->name('sabr.history');
         Route::patch(

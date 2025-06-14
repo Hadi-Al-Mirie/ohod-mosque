@@ -27,7 +27,9 @@ class AttendanceJustificationController extends Controller
         ]);
 
         $req->update(['status' => 'approved']);
-        return back()->with('success', 'تم قبول التبرير.');
+        $student=$req->attendance->student;
+        $student->update(['cashed_points' => $student->points]);
+        return back()->with('success', 'تم قبول تبرير الغياب.');
     }
 
     public function reject(AttendanceJustificationRequest $req)

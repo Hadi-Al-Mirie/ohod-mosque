@@ -13,6 +13,7 @@ use App\Models\Course;
 use Carbon\Carbon;
 use App\Models\User;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 class AttendanceController extends Controller
 {
@@ -89,13 +90,13 @@ class AttendanceController extends Controller
     public function create()
     {
         $circles = Circle::with('students.user')->get();
+        $students = Student::with('user')->get();
         $types = AttendanceType::select('id', 'name')->get();
-        return view('dashboard.attendances.add', compact('circles', 'types'));
+        return view('dashboard.attendances.add', compact('circles', 'students', 'types'));
     }
 
     public function store(Request $request)
     {
-        // Validate: require either circle_id or student_id
         $request->validate([
             'circle_id' => 'nullable|required_without:student_id|exists:circles,id',
             'student_id' => 'nullable|required_without:circle_id|exists:students,id',
@@ -109,23 +110,33 @@ class AttendanceController extends Controller
 
         try {
             $course = Course::where('is_active', true)->firstOrFail();
-            $createdAt = $course->created_at->format('Y-m-d');
+
+            // 3) Extract its start + end dates
+            $start = $course->start_date->format('Y-m-d');
+            $end = $course->end_date->format('Y-m-d');
             $date = $request->input('attendance_date');
 
-            if ($date < $createdAt) {
+            // 4) Enforce that attendance_date ∈ [start_date, end_date]
+            if ($date < $start || $date > $end) {
                 throw ValidationException::withMessages([
-                    'attendance_date' => ["تاريخ الحضور يجب أن يكون بعد أو في تاريخ بدء الدورة {$createdAt}"]
+                    'attendance_date' => [
+                        "تاريخ الحضور يجب أن يكون بين {$start} و {$end}."
+                    ]
                 ]);
             }
 
+            // 5) Justification rules
             $type = AttendanceType::findOrFail($request->input('type_id'));
-            $justif = $type->name === 'غياب مبرر' ? $request->input('justification') : null;
+            $justif = $type->name === 'غياب مبرر'
+                ? $request->input('justification')
+                : null;
 
             if ($type->name === 'غياب مبرر' && !$request->filled('justification')) {
                 throw ValidationException::withMessages([
-                    'justification' => ['الرجاء تقديم تبرير للغياب المبرر']
+                    'justification' => ['الرجاء تقديم تبرير للغياب المُبرر.']
                 ]);
             }
+
 
             // Determine targets
             if ($studentId = $request->input('student_id')) {
@@ -138,32 +149,23 @@ class AttendanceController extends Controller
             $courseId = $course->id;
             $bRec = false;
             foreach ($targets as $stu) {
-                // prevent duplicates
-                if (
-                    Attendance::where([
-                        ['student_id', $stu->id],
-                        ['attendance_date', $date],
-                        ['type_id', $type->id],
-                    ])->exists()
-                ) {
-                    continue;
-                }
-                $bRec = true;
-                Attendance::create([
+                $attributes = [
                     'student_id' => $stu->id,
-                    'course_id' => $courseId,
-                    'type_id' => $type->id,
-                    'by_id' => $byId,
-                    'justification' => $justif,
+                    'course_id' => $course->id,
                     'attendance_date' => $date,
-                ]);
-
-                // update cached points
+                ];
+                $justif = $type->name === 'غياب مبرر'
+                    ? $request->input('justification')
+                    : null;
+                Attendance::updateOrCreate(
+                    $attributes,
+                    [
+                        'type_id' => $type->id,
+                        'by_id' => $byId,
+                        'justification' => $justif,
+                    ]
+                );
                 $stu->update(['cashed_points' => $stu->points]);
-            }
-            if ($bRec == false) {
-                return redirect()->route('admin.attendances.index')
-                    ->with('danger', 'بيانات الحضور مسجلة مسبقا , قم بتعديلها');
             }
             return redirect()->route('admin.attendances.index')
                 ->with('success', 'تم تسجيل الحضور بنجاح');
@@ -173,6 +175,10 @@ class AttendanceController extends Controller
                 ->withInput()
                 ->withErrors($ve->errors())
                 ->with('danger', 'تأكد من صحة البيانات المدخلة.');
+        } catch (ModelNotFoundException $me) {
+            return back()
+                ->withInput()
+                ->with('danger', 'فشل في ايجاد الحلقة او الطالب');
         } catch (Exception $e) {
             Log::error('Error registering attendance', ['msg' => $e->getMessage()]);
             return back()

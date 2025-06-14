@@ -410,6 +410,14 @@ class StudentController extends Controller
      */
     public function destroy(Student $student)
     {
-        //
+        try {
+            $student->delete();
+            return redirect()->route('admin.students.index')
+                ->with('success', 'تم حذف الطالب بنجاح.');
+        } catch (Exception $e) {
+            Log::error('Error deleting student', ['error' => $e->getMessage()]);
+            return redirect()->back()
+                ->with('danger', 'حدث خطأ أثناء حذف الطالب.');
+        }
     }
 }

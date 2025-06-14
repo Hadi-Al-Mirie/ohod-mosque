@@ -479,18 +479,50 @@
         </div>
 
 
-        <div class="text-center mt-4">
+        <div class="text-center mt-4 mb-4">
             <a href="{{ route('admin.students.index') }}" class="btn btn-secondary hover-scale mt-5 mb-4 px-5 py-3 me-2">
                 <i class="fas fa-arrow-left me-2 ms-3"></i> العودة للقائمة
             </a>
-            <a href="{{ route('admin.recitation.history', $student->id) }}"
-                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5 ms-4">
-                <i class="fas fa-book me-2"></i> عرض سجل التسميع
+            <form action="{{ route('admin.students.destroy', $student->id) }}" method="POST"
+                class="delete-student-form d-inline-block">
+                @csrf
+                @method('DELETE')
+                <button type="button" class="btn btn-danger hover-scale mt-5 mb-4 px-5 py-3 me-5 delete-student-btn">
+                    <i class="fa-solid fa-trash me-2"></i> حذف
+                </button>
+            </form>
+            <a href="{{ route('admin.sabr.history', $student->id) }}"
+                class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5">
+                <i class="fas fa-book me-2"></i> عرض سجل السبر
             </a>
             <a href="{{ route('admin.sabr.history', $student->id) }}"
                 class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5">
                 <i class="fas fa-book me-2"></i> عرض سجل السبر
             </a>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title  w-100 text-center text-white">
+                        <i class="fas fa-exclamation-triangle me-2"></i> تأكيد الحذف
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light-gray text-center">
+                    <p class="fs-5 mb-0">هل أنت متأكد أنك تريد حذف هذا الطالب ؟</p>
+                </div>
+                <div class="modal-footer bg-light-gray d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-danger" id="deleteConfirmBtn">
+                        <i class="fas fa-trash me-1"></i> حذف
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        إلغاء
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
@@ -716,5 +748,22 @@
                 }, 200);
             };
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            let formToDelete = null;
+            document.querySelectorAll('.delete-student-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    formToDelete = btn.closest('form');
+                    deleteModal.show();
+                });
+            });
+            document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
+                if (formToDelete) {
+                    formToDelete.submit();
+                    formToDelete = null;
+                }
+            });
+        });
     </script>
 @endsection

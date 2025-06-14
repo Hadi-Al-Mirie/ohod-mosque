@@ -72,13 +72,19 @@
                             <label for="student_id" class="form-label fw-bold">الطالب</label>
                             <select name="student_id" id="student_id"
                                 class="form-select @error('student_id') is-invalid @enderror">
-                                <option value="">-- اختر الحلقة أولاً --</option>
+                                <option value="">-- اختر الطالب --</option>
+
+                                @foreach ($students as $student)
+                                    <option value="{{ $student->id }}"
+                                        {{ old('student_id') == $student->id ? 'selected' : '' }}>
+                                        {{ $student->user->name }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('student_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
                         <!-- Attendance Type -->
                         <div class="col-md-6">
                             <label for="type_id" class="form-label fw-bold">نوع الحضور</label>
@@ -109,15 +115,15 @@
                         </div>
 
                         <!-- Form Actions -->
-                        <div class="col-12 mt-4">
+                        <div class="col-12 mt-5 mb-2">
                             <div class="d-flex justify-content-between align-items-center">
-                                <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm">
-                                    <i class="fas fa-save me-2"></i> حفظ
-                                </button>
                                 <a href="{{ route('admin.attendances.index') }}"
                                     class="btn btn-secondary btn-lg px-4 shadow-sm">
                                     <i class="fas fa-arrow-left me-2"></i> عودة
                                 </a>
+                                <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm">
+                                    <i class="fas fa-save me-2"></i> حفظ
+                                </button>
                             </div>
                         </div>
                     </div>
