@@ -112,8 +112,8 @@ class AttendanceController extends Controller
             $course = Course::where('is_active', true)->firstOrFail();
 
             // 3) Extract its start + end dates
-            $start = $course->start_date->format('Y-m-d');
-            $end = $course->end_date->format('Y-m-d');
+            $start = Carbon::parse($course->start_date)->format('Y-m-d');
+            $end = Carbon::parse($course->end_date)->format('Y-m-d');
             $date = $request->input('attendance_date');
 
             // 4) Enforce that attendance_date ∈ [start_date, end_date]
