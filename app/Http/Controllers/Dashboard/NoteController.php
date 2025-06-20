@@ -91,15 +91,48 @@ class NoteController extends Controller
     public function requests(Request $request)
     {
         try {
+            $data = $request->validate([
+                'student_name' => 'nullable|string|min:1|max:255',
+                'teacher_name' => 'nullable|string|min:1|max:255',
+                'type' => 'nullable|in:positive,negative',
+                'date' => 'nullable|date',
+            ], [
+                'student_name.min' => 'يجب أن لا يقل الاسم عن حرف واحد.',
+                'student_name.max' => 'اسم الطالب طويل جداً (أقصى 255 حرف).',
+                'teacher_name.min' => 'يجب أن لا يقل اسم الأستاذ عن حرف واحد.',
+                'teacher_name.max' => 'اسم الأستاذ طويل جداً (أقصى 255 حرف).',
+                'type.in' => 'نوع الملاحظة غير صالح.',
+                'date.date' => 'التاريخ غير صالح.',
+            ]);
             $query = Note::with(['student.user', 'creator'])
                 ->where('status', 'pending');
 
-            if ($search = $request->get('search')) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('cause', 'LIKE', "%{$search}%")
-                        ->orWhereHas('student.user', fn($q) => $q->where('name', 'LIKE', "%{$search}%"))
-                        ->orWhereHas('creator', fn($q) => $q->where('name', 'LIKE', "%{$search}%"));
-                });
+            // 3a) Filter by student name
+            if (!empty($data['student_name'])) {
+                $query->whereHas(
+                    'student.user',
+                    fn($q) =>
+                    $q->where('name', 'like', "%{$data['student_name']}%")
+                );
+            }
+
+            // 3b) Filter by teacher (creator) name
+            if (!empty($data['teacher_name'])) {
+                $query->whereHas(
+                    'creator',
+                    fn($q) =>
+                    $q->where('name', 'like', "%{$data['teacher_name']}%")
+                );
+            }
+
+            // 3c) Filter by note type
+            if (!empty($data['type'])) {
+                $query->where('type', $data['type']);
+            }
+
+            // 3d) Filter by exact created_at date
+            if (!empty($data['date'])) {
+                $query->whereDate('created_at', $data['date']);
             }
 
             $notes = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -230,6 +263,25 @@ class NoteController extends Controller
             Log::error('Error approving note', ['id' => $note->id, 'error' => $e->getMessage()]);
             return redirect()->back()
                 ->with('danger', 'حدث خطأ أثناء الموافقة على الملاحظة.');
+        }
+    }
+    public function bulkDestroy(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if (count($ids)) {
+                Note::whereIn('id', $ids)->delete();
+                return back()
+                    ->with('success', 'تم حذف الملاحظات المحددة بنجاح.');
+            }
+            return back()->with('warning', 'لم يتم اختيار أي ملاحظات.');
+        } catch (Exception $e) {
+            Log::error('Error deleting bulk attendances.justifications', [
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('danger', 'حدث خطأ أثناء حذف الملاحظات المحددة.');
         }
     }
 }

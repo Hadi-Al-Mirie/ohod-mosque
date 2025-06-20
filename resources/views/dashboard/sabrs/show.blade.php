@@ -108,7 +108,7 @@
                 <h5 class="mb-0 text-white"><i class="fas fa-exclamation-triangle me-2"></i> تفاصيل الأخطاء</h5>
             </div>
             <div class="card-body bg-light-gray p-4">
-                <div class="table-responsive rounded-3 shadow-sm">
+                <div class="table-responsive overflow-x-auto overflow-y-visible rounded-3 shadow-sm">
                     <table class="table table-striped table-hover table-bordered mb-0">
                         <thead class="bg-success text-white">
                             <tr>

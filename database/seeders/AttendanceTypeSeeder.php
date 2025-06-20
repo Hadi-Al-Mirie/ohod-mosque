@@ -9,9 +9,12 @@ class AttendanceTypeSeeder extends Seeder
 {
     public function run()
     {
-        $types = ['حضور', 'غياب غير مبرر', 'غياب مبرر', 'تأخير'];
-        foreach ($types as $type) {
-            AttendanceType::firstOrCreate(['name' => $type]);
+        $types = ['حضور' => 5, 'غياب غير مبرر' => -2, 'غياب مبرر' => 0, 'تأخير' => -1];
+        foreach ($types as $name => $value) {
+            AttendanceType::updateOrCreate(
+                ['name' => $name],
+                ['value' => $value]
+            );
         }
     }
 }

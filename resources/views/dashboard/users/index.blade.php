@@ -65,7 +65,7 @@
 
 
 
-        <div class="table-responsive">
+        <div class="table-responsive overflow-x-auto overflow-y-visible">
             <table class="table table-bordered table-striped">
                 <thead class="table-dark">
                     <tr>

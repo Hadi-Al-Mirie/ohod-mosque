@@ -16,7 +16,7 @@
 
         <div class="card shadow-lg border-0">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered mb-0">
                         <thead class="bg-gradient-primary text-white">
                             <tr>

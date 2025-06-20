@@ -39,20 +39,21 @@ class Sabr extends Model
         return $this->belongsTo(Level::class);
     }
     public function calculateRawScore(): int
-{
-    $misValues = $this->level
-        ->mistakes()
-        ->where('mistakes.type', 'sabr')
-        ->pluck('level_mistakes.value', 'mistakes.id');
+    {
+        $misValues = $this->level
+            ->mistakes()
+            ->where('mistakes.type', 'sabr')
+            ->pluck('level_mistakes.value', 'mistakes.id');
 
-    $penalty = $this->sabrMistakes()   // ← note the () here
-        ->get()                        // ← fetch as Collection
-        ->sum(fn($r) =>
-            $misValues->get($r->mistake_id, 0)
-        );
+        $penalty = $this->sabrMistakes()   // ← note the () here
+            ->get()                        // ← fetch as Collection
+            ->sum(
+                fn($r) =>
+                $misValues->get($r->mistake_id, 0)
+            );
 
-    return max(0, min(100, 100 - $penalty));
-}
+        return max(0, min(100, 100 - $penalty));
+    }
 
     public function calculateResult(): string
     {

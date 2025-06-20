@@ -237,20 +237,25 @@ class CircleController extends Controller
                 ->where('type', 'positive')
                 ->count();
 
+            $recitation_history = $student->recitationHistoryRows();
             $negativeNotes = $student->notes()
                 ->where('course_id', $course?->id)
                 ->where('type', 'negative')
                 ->count();
-
+            $level = $student->level->name;
+            $attendances = $this->buildAttendanceList($student, $course);
             // 5) Build and return JSON
             return response()->json([
                 'id' => $student->qr_token,
                 'name' => $student->user->name,
+                'level' => $level,
                 'student_phone' => $student->student_phone,
                 'father_phone' => $student->father_phone,
                 'points' => $student->points,
                 'rank_in_circle' => $student->rankInCircle(),
                 'rank_in_mosque' => $student->rankInMosque(),
+                'attendances' => $attendances,
+                'recitation_history' => $recitation_history,
                 'recitations_count' => $recitationsCount,
                 'recitations_names' => $recitationsNames,
                 'sabrs_count' => $sabrsCount,
@@ -376,5 +381,19 @@ class CircleController extends Controller
 
         $sorted = $points->sortByDesc('points')->values();
         return $sorted->search(fn($r) => $r['id'] === $targetCircleId) + 1;
+    }
+
+    private function buildAttendanceList(Student $student, Course $course): array
+    {
+        return $student->attendances()
+            ->where('course_id', $course->id)
+            ->with('type')
+            ->orderBy('attendance_date', 'asc')
+            ->get()
+            ->map(fn($att) => [
+                'date' => $att->attendance_date->toDateString(),
+                'attendanceType' => $att->type->name,
+            ])
+            ->toArray();
     }
 }

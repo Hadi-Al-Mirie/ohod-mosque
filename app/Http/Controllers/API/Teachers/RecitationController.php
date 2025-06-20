@@ -142,12 +142,40 @@ class RecitationController extends Controller
             $data = $request->validate([
                 'student_id' => ['required', 'string', 'exists:students,qr_token'],
                 'page' => ['required', 'integer', 'min:1', 'max:604'],
-                'mistakes' => ['required', 'array', 'min:1'],
-                'mistakes.*.mistake_id' => ['required', 'integer', 'exists:mistakes,id'],
-                'mistakes.*.page_number' => ['required', 'integer', 'min:1', 'max:604'],
-                'mistakes.*.line_number' => ['required', 'integer', 'min:0', 'max:14'],
-                'mistakes.*.word_number' => ['required', 'integer', 'min:0', 'max:25'],
+                'mistakes' => ['present', 'array'],
+                'mistakes.*.mistake_id' => [
+                    'required_with:mistakes.*.page_number,'
+                    . 'mistakes.*.line_number,'
+                    . 'mistakes.*.word_number',
+                    'integer',
+                    'exists:mistakes,id,type,recitation',
+                ],
+                'mistakes.*.page_number' => [
+                    'required_with:mistakes.*.mistake_id,'
+                    . 'mistakes.*.line_number,'
+                    . 'mistakes.*.word_number',
+                    'integer',
+                    'min:1',
+                    'max:604'
+                ],
+                'mistakes.*.line_number' => [
+                    'required_with:mistakes.*.mistake_id,'
+                    . 'mistakes.*.page_number,'
+                    . 'mistakes.*.word_number',
+                    'integer',
+                    'min:0',
+                    'max:14'
+                ],
+                'mistakes.*.word_number' => [
+                    'required_with:mistakes.*.mistake_id,'
+                    . 'mistakes.*.page_number,'
+                    . 'mistakes.*.line_number',
+                    'integer',
+                    'min:0',
+                    'max:25'
+                ],
             ]);
+
 
             $student = Student::where('qr_token', $data['student_id'])->firstOrFail();
             $activeCourse = Course::where('is_active', true)->firstOrFail();
@@ -201,16 +229,15 @@ class RecitationController extends Controller
                     'is_final' => true,
                 ]);
 
-                // attach each mistake-record
                 foreach ($data['mistakes'] as $m) {
-                    Mistake::findOrFail($m['mistake_id']); // ensure exists
+                    Mistake::findOrFail($m['mistake_id']);
 
                     MistakesRecorde::create([
                         'mistake_id' => $m['mistake_id'],
                         'recitation_id' => $rec->id,
                         'sabr_id' => null,
                         'type' => 'recitation',
-                        'page_number' => $m['page_number'],
+                        'page_number' => $rec->page,
                         'line_number' => $m['line_number'],
                         'word_number' => $m['word_number'],
                     ]);
@@ -221,17 +248,14 @@ class RecitationController extends Controller
                         'recitation' => ['Result raw score cannot be negative (got ' . $raw . ').']
                     ]);
                 }
-                // 4) Find the ResultSetting for this raw score
                 $setting = ResultSetting::where('type', 'recitation')
                     ->where('min_res', '<=', $raw)
                     ->where('max_res', '>=', $raw)
                     ->first();
 
-                // 5) If that setting’s ID is 4, unset is_final
                 if ($setting && $setting->id === 4) {
                     $rec->update(['is_final' => false]);
                 }
-                // update the cached points
                 $student->update(['cashed_points' => $student->points]);
 
                 return $rec;

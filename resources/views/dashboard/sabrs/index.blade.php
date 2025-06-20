@@ -86,20 +86,25 @@
         </div>
         <div class="card shadow-lg border-0">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered mb-0">
                         <thead class="bg-gradient-primary text-white">
                             <tr>
+                                <th><input type="checkbox" id="select-all" /></th>
                                 <th class="py-3"><i class="fas fa-user me-2"></i> الطالب</th>
                                 <th class="py-3"><i class="fas fa-chalkboard-teacher me-2"></i> الأستاذ</th>
                                 <th class="py-3"><i class="fa-solid fa-file"></i> التاريخ</th>
                                 <th class="py-3"><i class="fas fa-star me-2"></i> النتيجة</th>
-                                <th class="py-3"><i class="fas fa-eye me-2"></i> التحكم</th>
+                                <th class="py-3"><i class="fas fa-eye me-2"></i> الخيارات</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($sabrs as $sabr)
                                 <tr class="hover-lift">
+                                    <td>
+                                        <input type="checkbox" name="ids[]" value="{{ $sabr->id }}"
+                                            class="row-checkbox" form="bulk-delete-form" />
+                                    </td>
                                     <td class="align-middle">
                                         {{ $sabr->student->user->name }}
                                     </td>
@@ -146,6 +151,20 @@
                                             class="btn btn-sm btn-primary hover-scale">
                                             <i class="fas fa-external-link-alt me-2"></i> التفاصيل
                                         </a>
+                                        <!-- Toggle-Final Form -->
+                                        <form method="POST" action="{{ route('admin.sabrs.toggleFinal', $sabr) }}"
+                                            class="d-inline-block ms-1 toggle-final-form">
+                                            @csrf
+                                            @method('PATCH')
+
+                                            <button type="button" class="btn btn-sm btn-secondary toggle-final-btn">
+                                                <i id="toggle_iconn"
+                                                    class="fas {{ $sabr->is_final ? 'fa-lock-open' : 'fa-lock' }}"></i>
+                                                {{ $sabr->is_final ? 'السماح بالإعادة' : 'تثبيت نهائي' }}
+                                            </button>
+                                            <input type="hidden" name="confirm_toggle" id="confirm_toggle"
+                                                value="0">
+                                        </form>
                                     </td>
                                 </tr>
                             @endforeach
@@ -154,59 +173,136 @@
                 </div>
             </div>
         </div>
+        <!-- Bulk Delete Form -->
+        <form id="bulk-delete-form" class="bulk-delete-form" method="POST"
+            action="{{ route('admin.sabrs.bulkDestroy') }}">
+            @csrf
+            @method('DELETE')
+            <div class="mt-3">
+                <button type="button" id="bulk-delete-btn" class="btn btn-danger" disabled>
+                    حذف المحدد
+                </button>
+            </div>
+        </form>
         <div class="mt-4 d-flex justify-content-center">
             {{ $sabrs->appends(request()->query())->links('pagination::bootstrap-5') }}
         </div>
     </div>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title w-100 text-white text-center"><i class="fas fa-exclamation-triangle me-2"></i>
+                        تأكيد الحذف</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <span id="bulkDeleteMessage"></span>
+                </div>
+                <div class="modal-footer d-flex justify-content-between gap-3">
+                    <button type="button" id="confirmbulkDelete" class="btn btn-danger">تأكيد</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Final Confirmation Modal -->
+    <div class="modal fade" id="toggleFinalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning  text-center">
+                    <h5 class="modal-title w-100 text-white text-center"><i class="fas fa-exclamation-triangle me-2"></i>
+                        تأكيد </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <span id="toggleFinalMessage"></span>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" id="confirmToggleFinal" class="btn btn-primary float-end">تأكيد</button>
+                    <button type="button" class="btn btn-secondary float-start" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const settingsNames = @json($settings->pluck('name')); // e.g. ['ممتاز','جيد جدا',...]
-            const searchField = document.getElementById('search_field');
-            const inputGroup = document.querySelector('.input-group');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Bulk-delete elements
+            const selectAll = document.getElementById('select-all');
+            const rowCheckboxes = Array.from(document.querySelectorAll('.row-checkbox'));
+            const deleteBtn = document.getElementById('bulk-delete-btn');
+            const bulkForm = document.querySelector('form.bulk-delete-form');
+            const bulkModal = new bootstrap.Modal(
+                document.getElementById('bulkDeleteModal')
+            );
 
-            function createResultSelect(selectedValue) {
-                const sel = document.createElement('select');
-                sel.name = 'search_value';
-                sel.id = 'search_value';
-                sel.className = 'form-select rounded-start';
+            const bulkMsg = document.getElementById('bulkDeleteMessage');
+            const bulkConfirm = document.getElementById('confirmbulkDelete');
 
-                settingsNames.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    if (name === selectedValue) opt.selected = true;
-                    sel.appendChild(opt);
+            function updateDeleteBtn() {
+                deleteBtn.disabled = !rowCheckboxes.some(cb => cb.checked);
+            }
+
+            selectAll.addEventListener('change', () => {
+                rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateDeleteBtn();
+            });
+            rowCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    selectAll.checked = rowCheckboxes.every(x => x.checked);
+                    updateDeleteBtn();
                 });
-                return sel;
-            }
+            });
 
-            function createTextInput(currentValue) {
-                const inp = document.createElement('input');
-                inp.type = 'text';
-                inp.name = 'search_value';
-                inp.id = 'search_value';
-                inp.className = 'form-control search-input rounded-start';
-                inp.placeholder = '🔍 أدخل كلمة البحث..';
-                inp.value = currentValue || '';
-                return inp;
-            }
+            deleteBtn.addEventListener('click', () => {
+                bulkMsg.textContent = 'هل أنت متأكد من حذف بيانات السبر المحددة؟ لا يمكن التراجع.';
+                bulkModal.show();
+            });
 
-            function swapField() {
-                const isResult = searchField.value === 'result';
-                const oldEl = document.getElementById('search_value');
-                const current = oldEl ? oldEl.value : '';
-                const newEl = isResult ?
-                    createResultSelect(current) :
-                    createTextInput(current);
+            bulkConfirm.addEventListener('click', () => {
+                bulkForm.submit();
+                bulkModal.hide();
+            });
 
-                inputGroup.replaceChild(newEl, oldEl);
-            }
+            // Toggle-final elements
+            const toggleModal = new bootstrap.Modal(
+                document.getElementById('toggleFinalModal')
+            );
+            console.log(toggleModal);
+            const toggleMsg = document.getElementById('toggleFinalMessage');
+            let currentForm, isFinal;
 
-            // 1) On change of field dropdown
-            searchField.addEventListener('change', swapField);
+            document.querySelectorAll('.toggle-final-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const icon = btn.querySelector('#toggle_iconn');
+                    if (!icon) {
+                        console.error('No <i> found inside button', btn);
+                        return;
+                    }
 
-            // 2) On initial load, do the swap if needed
-            swapField();
+                    currentForm = btn.closest('form.toggle-final-form');
+                    isFinal = icon.classList.contains('fa-lock-open');
+
+                    toggleMsg.textContent = isFinal ?
+                        'سيصبح هذا السبر قابلًا للإعادة  , هل أنت متأكد ؟' :
+                        'سيتم حفظ هذا السبر كـ "نهائي" , هل أنت متأكد ؟';
+
+                    currentForm
+                        .querySelector('input[name="confirm_toggle"]')
+                        .value = 0;
+
+                    toggleModal.show();
+                });
+            });
+
+            document.getElementById('confirmToggleFinal').addEventListener('click', () => {
+                currentForm.querySelector('#confirm_toggle').value = 1;
+                currentForm.submit();
+                toggleModal.hide();
+            });
         });
     </script>
 @endsection

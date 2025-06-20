@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <div class="table-responsive rounded-3 shadow-sm">
+        <div class="table-responsive overflow-x-auto overflow-y-visible rounded-3 shadow-sm">
             <table class="table table-striped table-hover mb-0">
                 <thead class="table-header">
                     <tr>

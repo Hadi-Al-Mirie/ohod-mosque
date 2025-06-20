@@ -50,6 +50,7 @@ class InfoController extends Controller
         return [
             'id' => $student->id,
             'name' => $student->user->name,
+            'level' => $student->level->name
         ];
     }
 

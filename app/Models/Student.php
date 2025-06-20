@@ -430,4 +430,80 @@ class Student extends Model
                 )->points ?? 0;
             });
     }
+
+    /**
+     * Build the recitation‑history rows for this student.
+     *
+     * @return array  [ ['page'=>1,'recited'=>bool,'result'=>string|null], … ]
+     *
+     * @throws \Exception on any unexpected error
+     */
+    public function recitationHistoryRows(): array
+    {
+        // 1) Which course is active?
+        $activeCourse = self::activeCourse();
+        if (!$activeCourse) {
+            throw new \Exception("No active course found");
+        }
+
+        // 2) Load all this student's recitations
+        $allRecs = $this->recitations()->get();
+
+        // 3) Split into “active” (current course) vs previous
+        $activeByPage = $allRecs
+            ->where('course_id', $activeCourse->id)
+            ->where('is_final', true)
+            ->groupBy('page');
+
+        $prevByPage = $allRecs
+            ->where('course_id', '!=', $activeCourse->id)
+            ->where('is_final', true)
+            ->groupBy('page');
+
+        // 4) What are the result‑settings for recitation?
+        $settings = ResultSetting::where('type', 'recitation')
+            ->orderBy('id')
+            ->get();
+
+        // 5) Build one “row” per page
+        $rows = [];
+        for ($page = 1; $page <= 604; $page++) {
+            $recited = false;
+            $displayResult = null;
+
+            // 5a) Check current course
+            if (isset($activeByPage[$page])) {
+                $best = null;
+                foreach ($activeByPage[$page] as $rec) {
+                    $raw = assessmentRawScore($rec);
+                    $setting = $settings
+                        ->first(fn($s) => $raw >= $s->min_res && $raw <= $s->max_res);
+
+                    if ($setting && (is_null($best) || $setting->id < $best->id)) {
+                        $best = $setting;
+                    }
+                }
+                if ($best) {
+                    $recited = true;
+                    $displayResult = $best->name;
+                }
+
+                // 5b) Otherwise check previous courses (just mark “done”)
+            } elseif (isset($prevByPage[$page])) {
+                foreach ($prevByPage[$page] as $rec) {
+                    // we don’t need the name, just mark recited
+                    $recited = true;
+                    break;
+                }
+            }
+
+            $rows[] = [
+                'page' => $page,
+                'recited' => $recited,
+                'result' => $displayResult,
+            ];
+        }
+
+        return $rows;
+    }
 }

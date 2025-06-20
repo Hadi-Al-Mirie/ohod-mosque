@@ -33,8 +33,9 @@ class StudentController extends Controller
                 'search_value' => 'nullable|string|min:2|max:100',
                 'order_by' => 'string|in:points,attendance,sabrs,recitations',
                 'circle_id' => 'nullable|exists:circles,id',
+                'per_page' => 'nullable|integer|min:1|max:1000',
             ]);
-
+            $perPage = $request->get('per_page', 10);
             $searchValue = $request->get('search_value');
             $orderBy = $request->get('order_by', 'points');
             $circleId = $request->get('circle_id');
@@ -172,7 +173,7 @@ class StudentController extends Controller
 
             // 8) paginate + preserve
             $students = $students
-                ->paginate(10)
+                ->paginate($perPage)
                 ->withQueryString();
             $circles = Circle::orderBy('name')->pluck('name', 'id');
             return view('dashboard.students.index', compact('students', 'orderBy', 'circles'));

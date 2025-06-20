@@ -52,6 +52,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             'recitations/{recitation}/toggle-final',
             [RecitationController::class, 'toggleFinal']
         )->name('recitations.toggleFinal');
+        Route::patch(
+            'sabrs/{sabr}/toggle-final',
+            [SabrController::class, 'toggleFinal']
+        )->name('sabrs.toggleFinal');
         Route::get('{student}/recitation-history', [RecitationHistoryController::class, 'show'])
             ->name('recitation.history');
         Route::resource('students', StudentController::class);
@@ -76,12 +80,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             [AttendanceJustificationController::class, 'reject']
         )
             ->name('attendances.justifications.reject');
+
+        Route::delete('attendances/justifications/bulk-destroy', [AttendanceJustificationController::class, 'bulkDestroy'])
+            ->name('attendances.justifications.bulkDestroy');
         Route::resource('attendances', AttendanceController::class);
+        Route::delete('sabrs/bulk-destroy', [SabrController::class, 'bulkDestroy'])
+            ->name('sabrs.bulkDestroy');
         Route::resource('sabrs', SabrController::class);
+        Route::delete('recitations/bulk-destroy', [RecitationController::class, 'bulkDestroy'])
+            ->name('recitations.bulkDestroy');
         Route::resource('recitations', RecitationController::class);
         Route::get('notes/requests', [NoteController::class, 'requests'])->name('notes.requests');
         Route::patch('notes/{note}/approve', [NoteController::class, 'approve'])
             ->name('notes.approve');
+        Route::delete('notes/bulk-destroy', [NoteController::class, 'bulkDestroy'])
+            ->name('notes.bulkDestroy');
         Route::resource('notes', NoteController::class)->parameters([
             'notes' => 'note'
         ])->where(['note' => '^(?!requests$).+']);
@@ -106,4 +119,69 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('awqafs', AwqafController::class);
     Route::post('/logout', [LoginController::class, 'logout'])
         ->name('logout');
+});
+
+
+
+Route::get('/list-migrations', function () {
+    $migrations = [];
+    $migrationsPath = database_path('migrations');
+
+    $finder = new Finder();
+    $finder->in($migrationsPath)->files()->name('*.php');
+
+    foreach ($finder as $file) {
+        $content = $file->getContents();
+
+        // Find all schema creation blocks
+        preg_match_all('/Schema::create\(.*?}\);\n?/s', $content, $schemaMatches);
+        $schemas = $schemaMatches[0] ?? [];
+
+        if (!empty($schemas)) {
+            $migrations[] = [
+                'filename' => $file->getFilename(),
+                'schemas' => array_map('trim', $schemas)
+            ];
+        }
+    }
+
+    $output = '';
+    foreach ($migrations as $migration) {
+        $output .= "";
+        foreach ($migration['schemas'] as $schema) {
+            $output .= $schema . "\n";
+        }
+        // $output .= str_repeat('-', 40) . "\n";
+    }
+    return "<pre>" . ($output ?: "No migrations found") . "</pre>";
+});
+
+Route::get('/list-models', function () {
+    $modelsContent = [];
+    $modelsPath = app_path('Models');
+
+    $finder = new Finder();
+    $finder->in($modelsPath)->files()->name('*.php');
+
+    foreach ($finder as $file) {
+        $content = $file->getContents();
+
+        // Extract class declaration and body
+        if (preg_match('/class\s+.*/s', $content, $matches)) {
+            $classContent = $matches[0];
+
+            // Verify the class is an Eloquent model
+            $relativePath = $file->getRelativePathname();
+            $className = str_replace(['.php', '/'], ['', '\\'], $relativePath);
+            $fullClassName = 'App\\Models\\' . $className;
+
+            if (class_exists($fullClassName) && is_subclass_of($fullClassName, Model::class)) {
+                $modelsContent[] = $classContent;
+            }
+        }
+    }
+
+    $output = implode("\n\n", $modelsContent);
+
+    return "<pre>" . ($output ?: "No models found") . "</pre>";
 });

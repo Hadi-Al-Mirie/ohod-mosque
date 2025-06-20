@@ -34,7 +34,7 @@
         {{-- Table --}}
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered mb-5"
                         style="table-layout: fixed; width: 100%;">
                         <colgroup>
@@ -74,9 +74,9 @@
                                         @if ($row['result'])
                                             <span class="badge bg-success fs-5">{{ $row['result'] }}</span>
                                         @elseif ($row['recited'])
-                                            <span class="badge bg-success fs-5">نعم</span>
+                                            <span class="badge bg-success fs-5">سمعها في دورة سابقة </span>
                                         @else
-                                            <span class="badge bg-danger fs-5">لا</span>
+                                            <span class="badge bg-danger fs-5">لم يسمع</span>
                                         @endif
                                     </td>
                                 </tr>

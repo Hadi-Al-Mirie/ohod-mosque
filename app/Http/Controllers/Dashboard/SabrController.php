@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Exception;
 use Illuminate\Validation\Rule;
 class SabrController extends Controller
@@ -158,6 +159,56 @@ class SabrController extends Controller
         }
     }
 
+    public function toggleFinal(Sabr $sabr)
+    {
+        try {
+            $studentId = $sabr->student_id;
+            $juz = $sabr->page;
+            $activeCourseId = course_id();
+
+            if ($sabr->is_final) {
+                $sabr->is_final = false;
+                $message = 'تم السماح بإعادة السبر.';
+            } else {
+                // Finalizing: ensure no other final in active course
+                $exists = Sabr::where('student_id', $studentId)
+                    ->where('juz', $juz)
+                    ->where('course_id', $activeCourseId)
+                    ->where('is_final', true)
+                    ->exists();
+
+                if ($exists) {
+                    throw new AccessDeniedHttpException(
+                        'لا يمكن تأكيد التسجيل لأن السبر مُسجّل كسبر نهائي مسبقا.'
+                    );
+                }
+
+                $sabr->is_final = true;
+                $message = 'تم تسجيل السبر كسبر نهائي .';
+            }
+
+            $sabr->save();
+            $stu = $sabr->student;
+            $stu->update(['cashed_points' => $stu->points]);
+            return redirect()
+                ->route('admin.sabrs.index')
+                ->with('success', $message);
+
+        } catch (AccessDeniedHttpException $e) {
+            return redirect()
+                ->back()
+                ->with('danger', $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Error toggling sabr final', [
+                'id' => $sabr->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()
+                ->back()
+                ->with('danger', 'حدث خطأ أثناء تعديل حالة السبر.');
+        }
+    }
+
     /**
      * Remove the specified resource from storage.
      */
@@ -179,6 +230,26 @@ class SabrController extends Controller
             Log::error('Error deleting sabr', ['id' => $sabr->id, 'error' => $e->getMessage()]);
             return redirect()->back()
                 ->with('danger', 'حدث خطأ أثناء حذف السبر.');
+        }
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if (count($ids)) {
+                Sabr::whereIn('id', $ids)->delete();
+                return redirect()->route('admin.sabrs.index')
+                    ->with('success', 'تم حذف السبر المحددة بنجاح.');
+            }
+            return back()->with('warning', 'لم يتم اختيار أي سبر.');
+        } catch (Exception $e) {
+            Log::error('Error deleting bulk sabr', [
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('danger', 'حدث خطأ أثناء حذف سبر.');
         }
     }
 }

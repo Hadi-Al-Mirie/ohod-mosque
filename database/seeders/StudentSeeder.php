@@ -108,35 +108,6 @@ class StudentSeeder extends Seeder
                     'by_id' => $adminForRec->random()->id,
                     'attendance_date' => $day->format('Y-m-d'),
                 ]);
-
-                // 1–2 Recitations per day
-                foreach (range(1, rand(1, 2)) as $_) {
-                    $lvl = $student->level;
-                    $rec = Recitation::create([
-                        'student_id' => $student->id,
-                        'by_id' => $adminForRec->random()->id,
-                        'course_id' => $activeCourse->id,
-                        'page' => $page = rand(1, 604),
-                        'level_id' => $levelId,
-                        'is_final' => true,
-                    ]);
-
-                    foreach ($recitationMistakes as $m) {
-                        // for each mistake, create one record with coordinates
-                        $mis_numxy = rand(1, 3);
-                        for ($ixy = 1; $ixy <= $mis_numxy; $ixy++) {
-                            MistakesRecorde::create([
-                                'mistake_id' => $m->id,
-                                'recitation_id' => $rec->id,
-                                'sabr_id' => null,
-                                'type' => 'recitation',
-                                'page_number' => $page,
-                                'line_number' => rand(1, 30),   // or your own logic
-                                'word_number' => rand(1, 15),   // adjust ranges as needed
-                            ]);
-                        }
-                    }
-                }
             }
 
 

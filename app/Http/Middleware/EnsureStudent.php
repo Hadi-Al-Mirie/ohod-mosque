@@ -17,8 +17,8 @@ class EnsureStudent
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        if ($user->role_id !== 2) {
-            throw new AccessDeniedHttpException('هذا القسم مخصّص للأساتذة فقط.');
+        if ($user->role_id !== 4) {
+            throw new AccessDeniedHttpException('هذا القسم مخصّص للطلاب فقط.');
         }
         return $next($request);
     }

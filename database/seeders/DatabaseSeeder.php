@@ -21,7 +21,8 @@ class DatabaseSeeder extends Seeder
             AttendanceJustificationRequestSeeder::class,
             AwqafSeeder::class,
             HelperTeacherSeeder::class,
-            PermissionSeeder::class
+            PermissionSeeder::class,
+            // StudentRecitationHistorySeeder::class,
         ]);
     }
 }

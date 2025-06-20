@@ -11,4 +11,5 @@ Artisan::command('inspire', function () {
 app()->booted(function () {
     $schedule = app(Schedule::class);
     $schedule->command('attendance:register')->dailyAt('04:00');
+    $schedule->command('telescope:prune --hours=48')->daily();
 });

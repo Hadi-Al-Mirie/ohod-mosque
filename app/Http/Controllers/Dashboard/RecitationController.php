@@ -223,4 +223,25 @@ class RecitationController extends Controller
                 ->with('danger', 'حدث خطأ أثناء حذف التسميع.');
         }
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if (count($ids)) {
+                Recitation::whereIn('id', $ids)->delete();
+                return redirect()->route('admin.recitations.index')
+                    ->with('success', 'تم حذف التسميعات المحددة بنجاح.');
+            }
+            return back()->with('warning', 'لم يتم اختيار أي تسميع.');
+        } catch (Exception $e) {
+            Log::error('Error deleting bulk recitation', [
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('danger', 'حدث خطأ أثناء حذف التسميع.');
+        }
+    }
+
 }

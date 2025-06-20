@@ -23,7 +23,7 @@
         </div>
         <div class="card shadow-lg border-0">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered mb-0">
                         <thead class="bg-light">
                             <tr>
@@ -94,13 +94,28 @@
             </div>
         </div>
 
-        {{-- Pagination --}}
-        <div class="mt-4 d-flex justify-content-center">
-            {{ $students->appends(request()->query())->links('pagination::bootstrap-5') }}
+        <div class="mt-5 d-flex justify-content-center align-items-center">
+
+            {{-- 1) Per‑page form --}}
+            <form id="per-page-form" method="GET" action="{{ route('admin.students.index') }}"
+                class="d-flex align-items-center me-3">
+                {{-- Keep all your other filters in hidden fields --}}
+                <input type="hidden" name="search_value" value="{{ request('search_value') }}">
+                <input type="hidden" name="order_by" value="{{ request('order_by') }}">
+                <input type="hidden" name="circle_id" value="{{ request('circle_id') }}">
+                <input type="number" name="per_page" id="per_page" class="form-control form-control-sm"
+                    style="width: 5rem;height:2rem !important;padding-right=-10px !important;margin-right=-50px !important;"
+                    min="1" value="{{ request('per_page', 10) }}" onchange="this.form.submit()">
+                <label for="per_page" class="fs-5s me-0 ms-2 mb-0" style="direction: rtl;">عرض
+                    لكل صفحة:</label>
+            </form>
+
+            {{-- 2) The actual paginator (will auto‑append per_page and other filters) --}}
+            <div class="mt-4">
+                {{ $students->appends(request()->query())->links('pagination::bootstrap-5') }}
+            </div>
+
         </div>
-
-
-
         {{-- Filter Modal --}}
         <div class="modal fade" id="filterModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">

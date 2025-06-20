@@ -3,6 +3,9 @@
 @section('content')
     <div class="container mt-5">
         @include('dashboard.layouts.alert')
+        @php
+            use Illuminate\Support\Str;
+        @endphp
         <!-- Header -->
         <div class="mb-4">
             <h1 class="h3 mb-4 fw-bold text-center"
@@ -80,7 +83,7 @@
         <!-- Table Section -->
         <div class="card shadow-lg">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered border-top-0">
                         <thead class="bg-gradient-primary text-white">
                             <tr>
@@ -88,7 +91,7 @@
                                 <th class="py-3"><i class="fa-solid fa-circle-info"></i> النوع</th>
                                 <th class="py-3"><i class="fas fa-archive me-2"></i> التبرير</th>
                                 <th class="py-3"><i class="fas fa-archive me-2"></i> التاريخ</th>
-                                <th class="py-3"><i class="fas fa-eye me-2"></i> الاجراءات</th>
+                                <th class="py-3"><i class="fas fa-eye me-2"></i> الخيارات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,7 +108,9 @@
                                             {{ $attendance->type->name }}
                                         </span>
                                     </td>
-                                    <td class="text-center">{{ $attendance->justification ?? '---' }}</td>
+                                    <td class="text-center">
+                                        {{ $attendance->justification ? Str::limit($attendance->justification, 30, '  ....') : '---' }}
+                                    </td>
                                     <td class="text-center fs-5">
                                         {{ \Carbon\Carbon::parse($attendance->attendance_date)->format('Y/m/d') }}
                                     </td>
@@ -134,27 +139,5 @@
             </div>
         @endif
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.date-picker-icon').forEach(container => {
-                const dateInput = container.querySelector('input[type="date"]');
-                if (!dateInput) return;
-
-                container.addEventListener('click', () => {
-                    // Remove any existing focus
-                    if (document.activeElement) document.activeElement.blur();
-
-                    // Show picker with delay to ensure blur completes
-                    setTimeout(() => {
-                        if (typeof dateInput.showPicker === 'function') {
-                            dateInput.showPicker();
-                        } else {
-                            // Fallback for browsers without showPicker()
-                            dateInput.focus();
-                        }
-                    }, 50);
-                });
-            });
-        });
-    </script>
+    <script></script>
 @endsection

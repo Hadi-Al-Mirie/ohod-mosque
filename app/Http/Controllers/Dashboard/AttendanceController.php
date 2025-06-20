@@ -81,7 +81,7 @@ class AttendanceController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('danger', 'حدث خطأ غير متوقع: ');
+                ->with('danger', 'حدث خطأ غير متوقع اثناء جلب بيانات الحضور');
         }
     }
 

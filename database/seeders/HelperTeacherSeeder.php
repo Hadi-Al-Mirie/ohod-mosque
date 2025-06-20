@@ -13,9 +13,9 @@ class HelperTeacherSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 3; $i++) {
             $user = User::create([
-                'name' => 'Helper Teacher ' . $i,
+                'name' => 'أستاذ مساعد ' . $i,
                 'password' => bcrypt('password123'),
                 'role_id' => 3,
             ]);

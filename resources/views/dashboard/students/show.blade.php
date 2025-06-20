@@ -106,10 +106,7 @@
                         <div class="text-center mt-5 ">
                             <div class="qr-container bg-white p-4 rounded-4 shadow-lg d-inline-block">
                                 <img src="data:image/png;base64,{{ base64_encode($qrcode) }}" alt="QR Code"
-                                    class="print-qr" style="max-width: 220px; border: 2px solid #e7e9ed">
-                                <p class="text-black mt-2 mb-0 fw-semibold">
-                                    <i class="fas fa-qrcode me-2 text-standout"></i> امسح الكود لتسجيل الدخول
-                                </p>
+                                    class="print-qr" style="max-width: 220px;">
                             </div>
                         </div>
                     </div>
@@ -495,9 +492,9 @@
                 class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5">
                 <i class="fas fa-book me-2"></i> عرض سجل السبر
             </a>
-            <a href="{{ route('admin.sabr.history', $student->id) }}"
+            <a href="{{ route('admin.recitation.history', $student->id) }}"
                 class="btn btn-primary hover-scale mt-5 mb-4 px-5 py-3 me-5">
-                <i class="fas fa-book me-2"></i> عرض سجل السبر
+                <i class="fas fa-book me-2"></i> عرض سجل التسميع
             </a>
         </div>
     </div>

@@ -8,12 +8,11 @@
             <h1 class="h3 fw-bold" style="color: var(--bs-primary);">
                 سجل السبر للطالب {{ $student->user->name }}
             </h1>
-            <p>الدورة الحالية: {{ $activeCourse->name }}</p>
         </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-striped table-bordered" style="table-layout: fixed; width:100%;">
                         <colgroup>
                             <col style="width:30%">
@@ -31,11 +30,11 @@
                                     <td>{{ $row['juz'] }}</td>
                                     <td>
                                         @if ($row['result'])
-                                            <span class="badge bg-success">{{ $row['result'] }}</span>
+                                            <span class="badge bg-success fs-5">{{ $row['result'] }}</span>
                                         @elseif($row['recited'])
-                                            <span class="badge bg-info">مسبقًا</span>
+                                            <span class="badge bg-info fs-5">سبر في دورة سابقة</span>
                                         @else
-                                            <span class="badge bg-danger">غير مسجل</span>
+                                            <span class="badge bg-danger fs-5">لم يسبر</span>
                                         @endif
                                     </td>
                                 </tr>

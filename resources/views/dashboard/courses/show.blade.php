@@ -142,7 +142,8 @@
                 </h4>
             </div>
             <div class="card-body w-100">
-                <table class="table table-responsive table-hover table-striped table-bordered">
+                <table
+                    class="table table-responsive overflow-x-auto overflow-y-visible table-hover  table-striped table-bordered">
                     <thead class="bg-light">
                         <tr class="text-center">
                             <th class="align-middle"><i class="fas fa-users me-2"></i> الحلقة</th>

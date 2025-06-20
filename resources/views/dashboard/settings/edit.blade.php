@@ -23,7 +23,7 @@
                 <div class="card-header bg-success text-white">
                     <h3 class="mb-2 text-center text-white"><i class="fas fa-chart-bar me-2"></i> إعدادات النتيجة</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body bg-light-gray">
                     @foreach (['recitation' => 'التسميع', 'sabr' => 'السبر'] as $typeKey => $typeLabel)
                         <h4 class="fw-bold text-primary text-center mt-4 mb-3">{{ $typeLabel }}</h4>
                         <div class="row g-3 mt-2">
@@ -32,20 +32,36 @@
                                     <div class="border rounded-3 p-3 h-100">
                                         <h6 class="text-center mb-3">{{ $setting->name }}</h6>
                                         <div class="row g-2 align-items-center">
-                                            <div class="col-auto text-end">
-                                                <label for="min_{{ $setting->id }}" class="form-label">من</label>
-                                            </div>
-                                            <div class="col-auto">
-                                                <input type="number" id="min_{{ $setting->id }}"
-                                                    name="result_settings[{{ $setting->id }}][min_res]"
-                                                    class="form-control form-control-sm fw-bold"
-                                                    value="{{ old("result_settings.{$setting->id}.min_res", $setting->min_res) }}">
-                                            </div>
+                                            @if ($setting->id != 4 && $setting->id != 8)
+                                                <!-- normal editable min_res -->
+                                                <div class="col-auto text-end">
+                                                    <label for="min_{{ $setting->id }}" class="form-label">من</label>
+                                                </div>
+                                                <div class="col-auto w-100">
+                                                    <input type="number" id="min_{{ $setting->id }}"
+                                                        name="result_settings[{{ $setting->id }}][min_res]"
+                                                        class="form-control form-control-sm fw-bold"
+                                                        value="{{ old("result_settings.{$setting->id}.min_res", $setting->min_res) }}">
+                                                </div>
+                                            @else
+                                                <!-- disabled for user -->
+                                                <div class="col-auto text-end">
+                                                    <label for="min_{{ $setting->id }}" class="form-label">من</label>
+                                                </div>
+                                                <div class="col-auto w-100">
+                                                    <input type="number" id="min_{{ $setting->id }}_disabled"
+                                                        class="form-control form-control-sm fw-bold"
+                                                        placeholder="يتم تحديده تلقائيا" disabled>
+                                                    {{-- hidden *enabled* field to actually submit --}}
+                                                    <input type="hidden"
+                                                        name="result_settings[{{ $setting->id }}][min_res]" value="0">
+                                                </div>
+                                            @endif
 
                                             <div class="col-auto text-end">
                                                 <label for="max_{{ $setting->id }}" class="form-label">إلى</label>
                                             </div>
-                                            <div class="col-auto">
+                                            <div class="col-auto w-100">
                                                 <input type="number" id="max_{{ $setting->id }}"
                                                     name="result_settings[{{ $setting->id }}][max_res]"
                                                     class="form-control form-control-sm fw-bold"
@@ -64,6 +80,7 @@
                                     </div>
                                 </div>
                             @endforeach
+
                         </div>
                         @if ($typeLabel == 'التسميع')
                             <br>
@@ -78,7 +95,7 @@
                     <h3 class="mb-2 text-white text-center"><i class="fas fa-exclamation-triangle me-2"></i> قيم الأخطاء
                         بحسب المستوى</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body bg-light-gray">
                     @foreach ($levels as $level)
                         <div class=" mb-4">
                             @if ($level->name != 'مبتدئ')
@@ -118,7 +135,7 @@
                         <i class="fas fa-user-check me-2"></i> قيم الحضور
                     </h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body bg-light-gray">
                     <div class="row g-3">
                         @foreach ($attendanceTypes as $type)
                             <div class="col-md-3">

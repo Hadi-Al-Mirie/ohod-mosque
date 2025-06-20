@@ -39,25 +39,30 @@ if (!function_exists('assessmentResultName')) {
         Collection $values,
         string $type
     ): string {
-        // Sum one penalty unit per record
+        Log::debug("'calculating Sabr Result name , recordes :'.{$records}");
+        Log::debug("'calculating Sabr Result name , values :'.{$values}");
+
         $totalPenalty = $records->sum(fn($r) => $values->get($r->mistake_id, 0));
 
+        Log::debug("'calculating Sabr Result name , penalty :'.{$totalPenalty}");
         $raw = $baseScore - $totalPenalty;
-
-        if ($raw < 0 || $raw > 100) {
+        Log::debug("'calculating Sabr Result name , raw :'.{$raw}");
+        if ($raw > 100) {
             throw ValidationException::withMessages([
                 'mistakes' => [
                     'نتيجة ' . ($type === 'recitation' ? 'التسميع' : 'السبر') .
-                    ' لا يمكن أن تكون خارج 0–100.'
+                    'لا يمكن أن تكون أكثر من 100.'
                 ]
             ]);
         }
+
 
         $setting = ResultSetting::where('type', $type)
             ->where('min_res', '<=', $raw)
             ->where('max_res', '>=', $raw)
             ->first();
 
+        Log::debug("'calculating Sabr Result name , setting :'.{$setting->name}");
         return $setting ? $setting->name : 'error';
     }
 }

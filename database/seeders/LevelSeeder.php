@@ -27,7 +27,7 @@ class LevelSeeder extends Seeder
         foreach ($levels as $level) {
             foreach ($mistakes as $mistake) {
                 $level->mistakes()->attach($mistake->id, [
-                    'value' => rand(1, 5),
+                    'value' => 1,
                 ]);
             }
         }

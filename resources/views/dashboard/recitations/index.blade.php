@@ -90,93 +90,78 @@
         <!-- Recitations Table -->
         <div class="card shadow-lg border-0">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive overflow-x-auto overflow-y-visible">
                     <table class="table table-hover table-striped table-bordered mb-0">
                         <thead class="bg-gradient-primary text-white">
                             <tr>
-                                <th class="py-3"><i class="fas fa-user me-2"></i> الطالب </th>
-                                <th class="py-3"><i class="fas fa-chalkboard-teacher me-2"></i> الأستاذ </th>
-                                <th class="py-3"><i class="fas fa-file-alt me-2"></i> الصفحة </th>
-                                <th class="py-3"><i class="fa-solid fa-calendar-days"></i> التاريخ</th>
-                                <th class="py-3"><i class="fas fa-star me-2"></i> النتيجة </th>
-                                <th class="py-3"><i class="fas fa-eye me-2"></i> الخيارات </th>
+                                <th><input type="checkbox" id="select-all" /></th>
+                                <th>الطالب</th>
+                                <th>الأستاذ</th>
+                                <th>الصفحة</th>
+                                <th>التاريخ</th>
+                                <th>النتيجة</th>
+                                <th>الخيارات</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($recitations as $recitation)
                                 <tr class="hover-lift">
-                                    <td class="align-middle">
-                                        {{ $recitation->student->user->name }}
+                                    <td>
+                                        <input type="checkbox" name="ids[]" value="{{ $recitation->id }}"
+                                            class="row-checkbox" form="bulk-delete-form" />
                                     </td>
-
-                                    <td class="align-middle">
+                                    <td>{{ $recitation->student->user->name }}</td>
+                                    <td>
                                         @if ($recitation->creator->role_id == 1)
-                                            <span class="badge bg-primary">
-                                                <i class="fas fa-user-shield me-2"></i> المشرف
-                                            </span>
+                                            <span class="badge bg-primary">المشرف</span>
                                         @else
                                             {{ $recitation->creator->name }}
                                         @endif
                                     </td>
-
-                                    <td class="align-middle fw-bold text-info">
-                                        {{ $recitation->page }}
-                                    </td>
-                                    <td class="align-middle fw-bold text-info">
-                                        {{ \Carbon\Carbon::parse($recitation->created_at)->format('Y/m/d') }}
-                                    </td>
+                                    <td>{{ $recitation->page }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($recitation->created_at)->format('Y/m/d') }}</td>
                                     @php
-                                        $colorMap = [
+                                        $name = $recitation->result_name ?? 'غير معروف';
+                                        $color = match ($name) {
                                             'ممتاز' => 'success',
                                             'جيد جداً' => 'primary',
                                             'جيد' => 'info',
                                             'إعادة' => 'warning',
-                                        ];
-                                        $iconMap = [
+                                            default => 'secondary',
+                                        };
+                                        $icon = match ($name) {
                                             'ممتاز' => 'fas fa-medal',
                                             'جيد جداً' => 'fas fa-thumbs-up',
                                             'جيد' => 'fas fa-thumbs-up',
                                             'إعادة' => 'fa-solid fa-triangle-exclamation',
-                                        ];
-                                        $name = $recitation->result_name ?? 'غير معروف';
-                                        $color = $colorMap[$name] ?? 'secondary';
-                                        $icon = $iconMap[$name] ?? 'fas fa-question-circle';
+                                            default => 'fas fa-question-circle',
+                                        };
                                     @endphp
-                                    <td class="align-middle">
+                                    <td>
                                         <span class="badge bg-{{ $color }} rounded-pill fs-6">
-                                            <i class="{{ $icon }} me-1"></i>
-                                            {{ $name }}
+                                            <i class="{{ $icon }}"></i> {{ $name }}
                                         </span>
                                     </td>
+                                    <td>
+                                        <a href="{{ route('admin.recitations.show', $recitation) }}"
+                                            class="btn btn-sm btn-primary">التفاصيل</a>
 
-                                    <td class="align-middle">
-                                        <a href="{{ route('admin.recitations.show', $recitation->id) }}"
-                                            class="btn btn-sm btn-primary hover-scale">
-                                            <i class="fas fa-external-link-alt me-2"></i> التفاصيل
-                                        </a>
-
-                                        {{-- Toggle final/unfinal --}}
+                                        <!-- Toggle-Final Form -->
                                         <form method="POST"
-                                            action="{{ route('admin.recitations.toggleFinal', $recitation->id) }}"
+                                            action="{{ route('admin.recitations.toggleFinal', $recitation) }}"
                                             class="d-inline-block ms-1 toggle-final-form">
                                             @csrf
                                             @method('PATCH')
 
-                                            <!-- hidden input to hold the “are you sure?” flag if you need it -->
-                                            <input type="hidden" name="confirm_toggle" id="confirm_toggle"
-                                                value="0">
-
-                                            <button type="button"
-                                                class="btn btn-sm btn-secondary hover-scale toggle-final-btn"
-                                                data-bs-toggle="modal" data-bs-target="#toggleFinalModal">
-                                                <i
-                                                    class="fas {{ $recitation->is_final ? 'fa-lock-open' : 'fa-lock' }} me-1"></i>
-                                                {{ $recitation->is_final ? 'السماح بالإعادة' : 'تثبيت كتسميع نهائي' }}
+                                            <button type="button" class="btn btn-sm btn-secondary toggle-final-btn">
+                                                <i id="toggle_iconn"
+                                                    class="fas {{ $recitation->is_final ? 'fa-lock-open' : 'fa-lock' }}"></i>
+                                                {{ $recitation->is_final ? 'السماح بالإعادة' : 'تثبيت نهائي' }}
                                             </button>
+
+                                            <input type="hidden" name="confirm_toggle" id="confirm_toggle" value="0">
                                         </form>
-
                                     </td>
-
                                 </tr>
                             @endforeach
                         </tbody>
@@ -184,56 +169,131 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bulk Delete Form -->
+        <form id="bulk-delete-form" class="bulk-delete-form" method="POST"
+            action="{{ route('admin.recitations.bulkDestroy') }}">
+            @csrf
+            @method('DELETE')
+            <div class="mt-3">
+                <button type="button" id="bulk-delete-btn" class="btn btn-danger" disabled>
+                    حذف المحدد
+                </button>
+            </div>
+        </form>
+
+        <!-- Pagination -->
         <div class="mt-4 d-flex justify-content-center">
             {{ $recitations->appends(request()->query())->links('pagination::bootstrap-5') }}
         </div>
     </div>
 
-    <!-- Toggle Final Confirmation Modal -->
-    <div class="modal fade" id="toggleFinalModal" tabindex="-1" aria-labelledby="toggleFinalModalLabel"
-        aria-hidden="true">
+    <!-- Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-warning text-dark d-flex align-items-center justify-content-between">
-                    <h5 class="modal-title text-center text-white  w-100" id="toggleFinalModalLabel">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        هل أنت متأكد؟
-                    </h5>
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title w-100 text-white text-center"><i class="fas fa-exclamation-triangle me-2"></i>
+                        تأكيد الحذف</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-0 text-center">
-                        <span id="toggleFinalMessage"></span>
-                    </p>
+                <div class="modal-body text-center">
+                    <span id="bulkDeleteMessage"></span>
                 </div>
-                <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-danger" id="confirmToggleFinal">تأكيد</button>
+                <div class="modal-footer d-flex justify-content-between gap-3">
+                    <button type="button" id="confirmbulkDelete" class="btn btn-danger">تأكيد</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 </div>
             </div>
         </div>
     </div>
 
-
-
-
+    <!-- Toggle Final Confirmation Modal -->
+    <div class="modal fade" id="toggleFinalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning  text-center">
+                    <h5 class="modal-title w-100 text-white text-center"><i class="fas fa-exclamation-triangle me-2"></i>
+                        تأكيد </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <span id="toggleFinalMessage"></span>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" id="confirmToggleFinal" class="btn btn-primary float-end">تأكيد</button>
+                    <button type="button" class="btn btn-secondary float-start" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const toggleModal = new bootstrap.Modal('#toggleFinalModal');
-            let currentForm, isFinalState;
+            // Bulk-delete elements
+            const selectAll = document.getElementById('select-all');
+            const rowCheckboxes = Array.from(document.querySelectorAll('.row-checkbox'));
+            const deleteBtn = document.getElementById('bulk-delete-btn');
+            const bulkForm = document.querySelector('form.bulk-delete-form');
+            const bulkModal = new bootstrap.Modal(
+                document.getElementById('bulkDeleteModal')
+            );
+
+            const bulkMsg = document.getElementById('bulkDeleteMessage');
+            const bulkConfirm = document.getElementById('confirmbulkDelete');
+
+            function updateDeleteBtn() {
+                deleteBtn.disabled = !rowCheckboxes.some(cb => cb.checked);
+            }
+
+            selectAll.addEventListener('change', () => {
+                rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateDeleteBtn();
+            });
+            rowCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    selectAll.checked = rowCheckboxes.every(x => x.checked);
+                    updateDeleteBtn();
+                });
+            });
+
+            deleteBtn.addEventListener('click', () => {
+                bulkMsg.textContent = 'هل أنت متأكد من حذف التسميعات المحددة؟ لا يمكن التراجع.';
+                bulkModal.show();
+            });
+
+            bulkConfirm.addEventListener('click', () => {
+                bulkForm.submit();
+                bulkModal.hide();
+            });
+
+            // Toggle-final elements
+            const toggleModal = new bootstrap.Modal(
+                document.getElementById('toggleFinalModal')
+            );
+            console.log(toggleModal);
+            const toggleMsg = document.getElementById('toggleFinalMessage');
+            let currentForm, isFinal;
 
             document.querySelectorAll('.toggle-final-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
+                    const icon = btn.querySelector('#toggle_iconn');
+                    if (!icon) {
+                        console.error('No <i> found inside button', btn);
+                        return;
+                    }
+
                     currentForm = btn.closest('form.toggle-final-form');
-                    isFinalState = btn.querySelector('i').classList.contains('fa-lock-open');
+                    isFinal = icon.classList.contains('fa-lock-open');
 
-                    const msgEl = document.getElementById('toggleFinalMessage');
-                    msgEl.textContent = isFinalState ?
-                        'سيتم إلغاء تثبيت هذا التسميع، وسيصبح قابلًا للإعادة.' :
-                        'سيتم تثبيت هذا التسميع كـ "نهائي". لا يمكن التراجع بعد التثبيت.';
+                    toggleMsg.textContent = isFinal ?
+                        'سيصبح هذا التسميع قابلًا للإعادة  , هل أنت متأكد ؟' :
+                        'سيتم حفظ هذا التسميع كـ "نهائي" , هل أنت متأكد ؟';
 
-                    currentForm.querySelector('#confirm_toggle').value = 0;
+                    currentForm
+                        .querySelector('input[name="confirm_toggle"]')
+                        .value = 0;
+
                     toggleModal.show();
                 });
             });

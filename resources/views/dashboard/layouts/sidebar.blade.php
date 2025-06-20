@@ -11,7 +11,7 @@
         </div>
 
         <nav id="app-nav-main" class="app-nav app-nav-main flex-grow-1">
-            <ul class="app-menu list-unstyled accordion" id="menu-accordion">
+            <ul class="app-menu list-unstyled accordion  mb-5" id="menu-accordion">
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
                         href="{{ route('admin.dashboard') }}">

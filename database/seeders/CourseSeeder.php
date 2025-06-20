@@ -14,6 +14,13 @@ class CourseSeeder extends Seeder
     public function run(): void
     {
         Course::create([
+            'name' => 'الأرشيفية',
+            'start_date' => Carbon::now()->subMonths(1)->format('Y-m-d'),
+            'end_date' => Carbon::now()->addMonths(1)->format('Y-m-d'),
+            'working_days' => json_encode([0]),
+            'is_active' => false,
+        ]);
+        Course::create([
             'name' => 'الأولى',
             'start_date' => Carbon::now()->subMonths(1)->format('Y-m-d'),
             'end_date' => Carbon::now()->addMonths(1)->format('Y-m-d'),
