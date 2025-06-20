@@ -36,12 +36,12 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title w-100 text-center">
+                        <h5 class="modal-title w-100 text-center text-white">
                             <i class="fas fa-filter me-2"></i> فلاتر البحث
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <form method="GET" action="{{ route('admin.notes.index') }}">
+                    <form method="GET" action="{{ route('admin.notes.requests') }}">
                         <div class="modal-body">
                             {{-- Student Name --}}
                             <div class="mb-3">
@@ -78,7 +78,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search me-1"></i> تطبيق
                             </button>
-                            <a href="{{ route('admin.notes.index') }}" class="btn btn-danger">
+                            <a href="{{ route('admin.notes.requests') }}" class="btn btn-danger">
                                 <i class="fas fa-times me-1"></i> مسح الفلاتر
                             </a>
                         </div>
