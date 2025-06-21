@@ -24,6 +24,8 @@ class HistoryController extends Controller
                 ->map(fn($note) => [
                     'student_name' => $note->student->user->name,
                     'type' => $note->type,
+                    'reason' => $note->reason,
+                    'status' => $note->status,
                     'updated_at' => $note->updated_at->toDateTimeString(),
                 ]);
 

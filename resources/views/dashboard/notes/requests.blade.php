@@ -141,7 +141,8 @@
                                             @csrf
                                             @method('PATCH')
                                             <input type="hidden" name="value" id="note_value">
-                                            <button type="button" class="btn btn-sm btn-primary hover-scale">
+                                            <button type="button"
+                                                class="approve-note-btn btn btn-sm btn-primary hover-scale">
                                                 <i class="fas fa-check-circle me-2"></i> الموافقة
                                             </button>
                                         </form>
@@ -224,6 +225,30 @@
             </div>
         </div>
     </div>
+    <!-- Value Modal -->
+    <div class="modal fade" id="noteValueModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title text-white w-100 text-center">
+                        <i class="fas fa-coins me-2"></i> إدخال قيمة الملاحظة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light-gray">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">القيمة (رقم موجب)</label>
+                        <input type="number" id="valueInput" class="form-control" min="1" value="5">
+                    </div>
+                    <div id="errorMessage" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer bg-light-gray d-flex justify-content-between">
+                    <button type="button" class="btn btn-success" id="confirmValue">تأكيد</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
@@ -277,6 +302,35 @@
             bulkConfirm.addEventListener('click', () => {
                 bulkForm.submit();
                 bulkModal.hide();
+            });
+
+
+            const valueModal = new bootstrap.Modal('#noteValueModal');
+            let currentForm = null;
+
+            document.querySelectorAll('.approve-note-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    currentForm = btn.closest('form');
+                    valueModal.show();
+                });
+            });
+
+            document.querySelector('#confirmValue').addEventListener('click', () => {
+                const val = document.querySelector('#valueInput').value;
+                const errorMessage = document.querySelector('#errorMessage');
+
+                errorMessage.classList.add('d-none');
+
+                const numeric = parseInt(val, 10);
+                if (isNaN(numeric) || numeric <= 0) {
+                    errorMessage.textContent = '❗ الرجاء إدخال رقم صحيح موجب';
+                    errorMessage.classList.remove('d-none');
+                    return;
+                }
+
+                currentForm.querySelector('#note_value').value = numeric;
+                currentForm.submit();
+                valueModal.hide();
             });
         });
     </script>
